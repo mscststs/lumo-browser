@@ -17,7 +17,9 @@
 | 扩展 popup（工具栏气泡） | ✅ 用户脚本管理器的 popup 正常显示 | `artifacts/verify/us-popup2.png` |
 | `chrome.userScripts` | ✅ 默认开放（可关），注册 + 真实执行成功 | `artifacts/verify/userscript-proof.png`（页面出现 `LUMO_USERSCRIPT_OK`） |
 | `scripting.executeScript` | ✅ 隔离世界注入并返回 | 探针 `isolatedMarker: true` |
-| MV3 探针 | ✅ 22/24（余 2 项为未声明权限的对照项） | `PROBE_JSON` |
+| MV3 探针 | ✅ **30/30**（`docs/07-capability-matrix.md`） | `PROBE_JSON` |
+| Lumo AI 端到端 | ✅ 侧栏 → provider → 流式回复（本地 mock OpenAI） | `scripts/verify/lumo-e2e.sh`、`artifacts/verify/lumo-e2e-*` |
+| 关闭侧栏不崩溃 | ✅ 连续 3 次开/关，进程存活（`patches/0011`） | `closecycle-*`、`summary.txt` 的 `close_panel=ok` |
 | `chrome://extensions` 管理页 | ✅ 开发者模式 / 加载未打包 / 打包 / 更新 | 截图 |
 
 ## 关键补丁

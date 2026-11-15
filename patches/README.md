@@ -19,5 +19,6 @@
 | 0008 | userscripts-optout | `chrome.userScripts` 默认允许（可关），否则用户脚本管理器不可用 | 已有 |
 | 0009 | popup-container-anchor | popup 无内联按钮时用扩展容器做锚点（手机不丢 popup） | 已有 |
 | 0010 | sidepanel-bottom-sheet | 窄屏 bottom sheet（拖拽/peek），宽屏并排可调宽 | 已有 |
+| 0011 | sidepanel-close-detach | 关闭侧栏时容器可能被挂在 Activity 内容视图上，改为“从当前父容器移除”，修复关闭闪退 | 已有 |
 
 品牌化不在 patch 里，由 `scripts/chromium/brand.sh` + `chrome_public_manifest_package` 完成（二进制图标不适合文本补丁）。

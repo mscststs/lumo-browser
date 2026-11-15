@@ -26,10 +26,11 @@ fi
 step "stage extensions"
 EXT_ROOT="/sdcard/Android/data/$PRODUCT_PKG/files/ext"
 D shell mkdir -p "$EXT_ROOT"
-# NOTE: the probe is staged under a versioned directory so Chrome cannot reuse
-# a cached extension script from an older probe build.
-PROBE_DIR="$EXT_ROOT/probe-v2"
-D shell rm -rf "$PROBE_DIR" "$EXT_ROOT/lumo" "$EXT_ROOT/lumo-userscript-manager"
+# NOTE: the probe is staged under a content-hashed directory so Chrome cannot
+# reuse a cached extension script from an older probe build.
+PROBE_HASH="$(find "$REPO_ROOT/tools/probe-extension" -type f -exec sha256sum {} + | sort | sha256sum | cut -c1-10)"
+PROBE_DIR="$EXT_ROOT/probe-$PROBE_HASH"
+D shell rm -rf "$EXT_ROOT"/probe-* "$EXT_ROOT/lumo" "$EXT_ROOT/lumo-userscript-manager"
 D push "$REPO_ROOT/tools/probe-extension" "$PROBE_DIR" >/dev/null
 D push "$EXT_LUMO_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo" >/dev/null
 D push "$EXT_US_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
@@ -85,6 +86,24 @@ if python3 "$REPO_ROOT/tools/cdp.py" list > "$OUT/cdp-targets.txt" 2>/dev/null; 
   log "captured $(grep -c service_worker "$OUT/cdp-targets.txt") service workers"
 else
   warn "CDP not reachable"
+fi
+
+# 4d) regression: closing the panel must not kill the browser process
+step "close panel regression"
+PIDS_BEFORE="$(D shell pidof "$PRODUCT_PKG" | tr -d '\r')"
+if tap_text "关闭" || tap_text "Close"; then
+  sleep 3
+  PIDS_AFTER="$(D shell pidof "$PRODUCT_PKG" | tr -d '\r')"
+  if [[ -n "$PIDS_AFTER" ]]; then
+    log "browser alive after closing the panel (pid $PIDS_AFTER)"
+    echo "close_panel=ok pid=$PIDS_AFTER" >> "$OUT/summary.txt"
+  else
+    warn "browser died when closing the side panel"
+    echo "close_panel=CRASH (pid before=$PIDS_BEFORE)" >> "$OUT/summary.txt"
+  fi
+  shot "$OUT/screen-04-panel-closed.png"
+else
+  warn "close button not found"
 fi
 
 # 5) logcat + probe payload

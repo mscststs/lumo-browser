@@ -71,7 +71,7 @@
      }
 --- /dev/null
 +++ b/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelBottomSheet.java
-@@ -0,0 +1,191 @@
+@@ -0,0 +1,194 @@
 +// Copyright 2026 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -126,13 +126,12 @@
 +        mContainerView = containerView;
 +        mInnerContainerView = innerContainerView;
 +        mHandleView = createHandleView();
-+        // Place the drag handle above the panel header (which has the title + close button).
-+        LinearLayout.LayoutParams handleParams =
-+                new LinearLayout.LayoutParams(dp(36), dp(4));
-+        handleParams.gravity = Gravity.CENTER_HORIZONTAL;
-+        handleParams.topMargin = dp(8);
-+        handleParams.bottomMargin = dp(4);
-+        mInnerContainerView.addView(mHandleView, 0, handleParams);
++        // Place the drag handle above the panel header (which has the title + close button). The
++        // touch target is deliberately taller than the 4dp visual bar so dragging is comfortable.
++        LinearLayout.LayoutParams touchParams =
++                new LinearLayout.LayoutParams(
++                        ViewGroup.LayoutParams.MATCH_PARENT, dp(24));
++        mInnerContainerView.addView(mHandleView, 0, touchParams);
 +        mHandleView.setOnTouchListener(this::onHandleTouch);
 +        mHandleView.setOnClickListener(v -> togglePeek());
 +        mPeekPx = dp(PEEK_DP);
@@ -140,13 +139,17 @@
 +    }
 +
 +    private View createHandleView() {
-+        View handle = new View(mContext);
++        FrameLayout touchArea = new FrameLayout(mContext);
++        View bar = new View(mContext);
 +        GradientDrawable bg = new GradientDrawable();
 +        bg.setColor(0x33000000);
 +        bg.setCornerRadius(dp(2));
-+        handle.setBackground(bg);
-+        handle.setContentDescription("拖动调整侧栏高度");
-+        return handle;
++        bar.setBackground(bg);
++        FrameLayout.LayoutParams barParams =
++                new FrameLayout.LayoutParams(dp(36), dp(4), Gravity.CENTER);
++        touchArea.addView(bar, barParams);
++        touchArea.setContentDescription("拖动调整侧栏高度");
++        return touchArea;
 +    }
 +
 +    private int dp(int value) {

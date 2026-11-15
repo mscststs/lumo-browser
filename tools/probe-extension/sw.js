@@ -537,7 +537,8 @@ async function probeOffscreenDocument() {
   if (!existing.length) {
     await chrome.offscreen.createDocument({
       url: 'offscreen.html',
-      reasons: ['TESTING'],
+      // `TESTING` requires a command-line switch; DOM_SCRAPING works on release builds.
+      reasons: ['DOM_SCRAPING'],
       justification: 'MV3 capability probe'
     });
   }
