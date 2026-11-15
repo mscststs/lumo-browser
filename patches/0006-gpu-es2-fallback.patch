@@ -1,0 +1,16 @@
+--- a/gpu/config/gpu_info_collector.cc
++++ b/gpu/config/gpu_info_collector.cc
+@@ -93,7 +93,12 @@
+ scoped_refptr<gl::GLContext> InitializeGLContext(gl::GLSurface* surface) {
+   TRACE_EVENT("gpu,startup", "gpu_info_collector::InitializeGLContext");
+   gl::GLContextAttribs attribs;
+-  attribs.allow_es_version_fallback = false;
++  // Lumo: some still-supported Android GPUs (e.g. Adreno 640 on Android 11)
++  // expose only an ES2-capable EGL config to ANGLE. Without a fallback the GPU
++  // process cannot collect its own info and the whole browser aborts, because
++  // Android has no software-compositing fallback. Collecting info with an ES2
++  // context keeps the browser usable (WebGL may be limited).
++  attribs.allow_es_version_fallback = true;
+   scoped_refptr<gl::GLContext> context(
+       gl::init::CreateGLContext(nullptr, surface, attribs));
+   if (!context.get()) {

@@ -55,3 +55,18 @@ scripts/device/install.sh
 - [ ] official 构建下默认参数能否正常起浏览器（`GPU process isn't usable` 消失）
 - [ ] `chrome://gpu` 页面（可在能启动后查看）确认 GL_RENDERER
 - [ ] 若仍失败：检查 ANGLE ES2 cap 是否与 `target_sdk_version=37` 有关（试 `target_sdk_version=30`）
+
+## 6. 最终结论（2026-11-16 更新）
+
+- `is_official_build=true` 构建仍会因 ANGLE/Adreno 的 ES3 上下文创建失败而崩（`EGL_BAD_ATTRIBUTE`）。
+- 采用 `patches/0006`（GPU 信息收集允许 ES2 回退）后，浏览器**正常启动**：
+  GPU 进程以 ES2 运行，Chromium 160 在我们的设备上稳定可用，扩展全部加载。
+- 因此 v0.1 的 GPU 策略：**官方构建 + ES2 回退补丁**；后续再针对 ES3/ANGLE 做优化（不影响扩展能力）。
+
+## 7. 已解决的手机形态问题
+
+| 问题 | 根因 | 补丁 |
+|---|---|---|
+| 点「打开扩展程序菜单」崩溃 | 上游把扩展工具栏硬编码为 tablet（`(ToolbarTablet) mToolbarLayout`） | `0002`：`toolbar_phone.xml` 加容器 + `ToolbarPhone` 接收 coordinator + ToolbarManager 去掉强转 |
+| 手机侧栏永远不显示 | `canShowSideUi` 要求 `availableWidth >= minWebContents(412dp)`，手机只有 392dp | `0007`：窄窗口改为全宽 overlay 面板 |
+| 扩展菜单/管理页 | 上游已有 | 无需补丁；真机已验证底部弹层与 chrome://extensions 可用 |

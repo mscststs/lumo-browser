@@ -103,8 +103,8 @@ PY
 # Open chrome://extensions in the running browser using the overflow menu
 # (chrome:// URLs are rejected by the intent dispatcher on release builds).
 open_extensions_page() {
-  tap_text "Customize and control" || tap_text "更多选项" || tap_text "More options" || \
-    tap_text "主菜单" || { warn "overflow button not found"; return 1; }
+  tap_text "自定义及控制" || tap_text "Customize and control" || tap_text "更多选项" || \
+    tap_text "More options" || tap_text "主菜单" || { warn "overflow button not found"; return 1; }
   sleep 1
   tap_text "扩展程序" || tap_text "Extensions" || { warn "extensions menu item not found"; return 1; }
   sleep 1

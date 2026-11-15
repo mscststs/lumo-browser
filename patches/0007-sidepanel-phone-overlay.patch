@@ -1,0 +1,28 @@
+--- a/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelContainerCoordinatorImpl.java
++++ b/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelContainerCoordinatorImpl.java
+@@ -694,7 +694,11 @@
+             return availableWidthDp;
+         }
+ 
+-        // 4. Return 0 if available space can't accommodate the minimum side panel width.
++        // 4. Lumo: if the window is too narrow for a side-by-side panel (phones),
++        // use a full-width overlay instead of refusing to show anything.
++        if (windowWidthDp < minSidePanelContainerWidthDp * 2) {
++            return windowWidthDp;
++        }
+         return 0;
+     }
+ 
+@@ -732,7 +736,11 @@
+         // Clamp the user-picked width, either committed or from an in-progress drag.
+         @Px
+         int minSidePanelContainerWidthPx = ViewUtils.dpToPx(context, minSidePanelContainerWidthDp);
+-        if (availableWidthPx < minSidePanelContainerWidthPx) return 0;
++        if (availableWidthPx < minSidePanelContainerWidthPx) {
++            // Lumo: phones are narrower than the minimum side-by-side width. Instead
++            // of refusing to show the panel, present it as a full-width overlay.
++            return windowWidthPx;
++        }
+         return MathUtils.clamp(
+                 userResizedWidthPx,
+                 minSidePanelContainerWidthPx,

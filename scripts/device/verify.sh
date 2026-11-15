@@ -30,7 +30,7 @@ D shell rm -rf "$EXT_ROOT/probe" "$EXT_ROOT/lumo" "$EXT_ROOT/lumo-userscript-man
 D push "$REPO_ROOT/tools/probe-extension" "$EXT_ROOT/probe" >/dev/null
 D push "$EXT_LUMO_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo" >/dev/null
 D push "$EXT_US_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
-CMDLINE="chrome --load-extension=$EXT_ROOT/probe,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager"
+CMDLINE="chrome --load-extension=$EXT_ROOT/probe,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager --no-first-run --disable-fre --no-default-browser-check"
 DR "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
 D shell "printf '%s\n' '$CMDLINE' > /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
 DR "am set-debug-app --persistent $PRODUCT_PKG" || true

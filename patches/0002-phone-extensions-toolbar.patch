@@ -1,0 +1,62 @@
+--- a/chrome/browser/ui/android/toolbar/java/res/layout/toolbar_phone.xml
++++ b/chrome/browser/ui/android/toolbar/java/res/layout/toolbar_phone.xml
+@@ -74,6 +74,17 @@
+             android:layout_height="match_parent"
+             android:visibility="gone"/>
+ 
++        <!-- Lumo: host the extension toolbar (actions + extensions menu) on
++             phones. Upstream only ships this ViewStub in toolbar_tablet.xml,
++             which left `ExtensionsMenuCoordinator` without an anchor and made
++             the overflow menu's "open extensions menu" entry crash. -->
++        <ViewStub
++            android:id="@+id/extensions_toolbar_container_stub"
++            android:inflatedId="@+id/extensions_toolbar_container"
++            android:layout_width="wrap_content"
++            android:layout_height="?attr/toolbarButtonHeight"
++            android:layout_marginVertical="?attr/toolbarButtonMarginVertical"/>
++
+         <org.chromium.chrome.browser.toolbar.top.ToggleTabStackButton
+             android:id="@+id/tab_switcher_button"
+             style="@style/ToolbarHoverableButton"
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java
+@@ -84,6 +84,7 @@
+ import org.chromium.chrome.browser.theme.ThemeColorProvider;
+ import org.chromium.chrome.browser.theme.ThemeUtils;
+ import org.chromium.chrome.browser.toolbar.R;
++import org.chromium.chrome.browser.toolbar.extensions.ExtensionsToolbarCoordinator;
+ import org.chromium.chrome.browser.toolbar.ToolbarDataProvider;
+ import org.chromium.chrome.browser.toolbar.ToolbarProgressBar;
+ import org.chromium.chrome.browser.toolbar.ToolbarTabController;
+@@ -3843,4 +3844,19 @@
+             return !(isNtp && isSignInLevelUp);
+         }
+     }
++
++    /**
++     * Lumo: the extensions toolbar coordinator (actions + extensions menu) on
++     * phones. The container is inflated from
++     * {@code toolbar_phone.xml}'s extensions_toolbar_container_stub, so it takes
++     * part in the normal LinearLayout measurement; unlike ToolbarTablet no
++     * width consumers are required.
++     */
++    private @Nullable ExtensionsToolbarCoordinator mExtensionsToolbarCoordinator;
++
++    @Override
++    public void setExtensionsToolbarCoordinator(
++            @Nullable ExtensionsToolbarCoordinator extensionsToolbarCoordinator) {
++        mExtensionsToolbarCoordinator = extensionsToolbarCoordinator;
++    }
+ }
+--- a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+@@ -2829,7 +2829,8 @@
+                                                         mActivityTabProvider.asObservable(),
+                                                         mTabCreatorManager.getTabCreator(false),
+                                                         getBrowsingModeThemeColorProvider(),
+-                                                        (ToolbarTablet) mToolbarLayout,
++                                                        // Lumo: phones host the extensions toolbar too.
++                                                        mToolbarLayout,
+                                                         contextMenuPopulatorFactory,
+                                                         selectionDropdownMenuDelegate,
+                                                         mTabModelSelector,
