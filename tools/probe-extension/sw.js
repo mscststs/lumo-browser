@@ -477,6 +477,91 @@ async function probeDebugger() {
   return 'attach 存在（未实际 attach）';
 }
 
+
+/* --- extra MV3 surface (Lumo Browser matrix) ------------------------------ */
+
+async function probeCookiesWrite() {
+  const url = 'https://example.com/';
+  await chrome.cookies.set({ url, name: 'lumo_probe', value: '1', path: '/' });
+  const got = await chrome.cookies.get({ url, name: 'lumo_probe' });
+  await chrome.cookies.remove({ url, name: 'lumo_probe' });
+  if (!got || got.value !== '1') throw new Error('cookie round-trip failed');
+  return `set/get/remove ok (value=${got.value})`;
+}
+
+async function probeTabGroups() {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab || tab.id == null) return 'no active tab (API exposed)';
+  if (!/^https?:/.test(tab.url || '')) return `active tab not web (${tab.url || 'unknown'}); API exposed`;
+  const groupId = await chrome.tabs.group({ tabIds: [tab.id] });
+  await chrome.tabGroups.update(groupId, { title: 'lumo-probe', color: 'blue' });
+  const groups = await chrome.tabGroups.query({ title: 'lumo-probe' });
+  await chrome.tabs.ungroup([tab.id]);
+  return `group+update+query+ungroup ok (found=${groups.length})`;
+}
+
+async function probeWebRequestEvents() {
+  const events = { before: 0, completed: 0 };
+  const onBefore = () => { events.before += 1; };
+  const onCompleted = () => { events.completed += 1; };
+  chrome.webRequest.onBeforeRequest.addListener(onBefore, { urls: ['<all_urls>'] });
+  chrome.webRequest.onCompleted.addListener(onCompleted, { urls: ['<all_urls>'] });
+  try {
+    await fetch('https://example.com/?lumo_probe=1', { cache: 'no-store' });
+  } catch (e) { /* offline is still fine: events may not fire */ }
+  await new Promise((r) => setTimeout(r, 800));
+  chrome.webRequest.onBeforeRequest.removeListener(onBefore);
+  chrome.webRequest.onCompleted.removeListener(onCompleted);
+  return `onBeforeRequest=${events.before}, onCompleted=${events.completed}`;
+}
+
+async function probeMainWorldScripting() {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab || tab.id == null || !/^https?:/.test(tab.url || '')) {
+    return `skipped (active tab: ${tab ? tab.url : 'none'})`;
+  }
+  const [res] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    world: 'MAIN',
+    func: () => {
+      window.__lumoMainWorld = 42;
+      return { marker: window.__lumoMainWorld, isIsolated: typeof chrome === 'undefined' };
+    }
+  });
+  return JSON.stringify(res.result);
+}
+
+async function probeOffscreenDocument() {
+  if (!chrome.offscreen) throw new Error('chrome.offscreen not exposed');
+  const existing = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
+  if (!existing.length) {
+    await chrome.offscreen.createDocument({
+      url: 'offscreen.html',
+      reasons: ['TESTING'],
+      justification: 'MV3 capability probe'
+    });
+  }
+  const contexts = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
+  await chrome.offscreen.closeDocument();
+  return `create+getContexts+close ok (contexts=${contexts.length})`;
+}
+
+async function probeIdentityApi() {
+  if (!chrome.identity) throw new Error('chrome.identity not exposed');
+  return `launchWebAuthFlow exists=${typeof chrome.identity.launchWebAuthFlow === 'function'}`;
+}
+
+async function probeCaptureVisibleTab() {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab || tab.windowId == null) return 'no window';
+  try {
+    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 40 });
+    return `captured ${Math.round((dataUrl || '').length / 1024)}KB`;
+  } catch (e) {
+    throw new Error(describeError(e));
+  }
+}
+
 const PROBE_ITEMS = [
   ['runtime.getManifest', probeRuntimeGetManifest],
   ['runtime.getURL', probeRuntimeGetUrl],
@@ -500,8 +585,14 @@ const PROBE_ITEMS = [
   ['downloads.download(exists)', probeDownloads],
   ['i18n.getMessage', probeI18n],
   ['action.setBadgeText/setIcon', probeActionBadgeIcon],
-  ['offscreen.createDocument', probeOffscreen],
-  ['debugger.attach(exists)', probeDebugger]
+  ['offscreen.createDocument', probeOffscreenDocument],
+  ['debugger.attach(exists)', probeDebugger],
+  ['cookies.set/get/remove', probeCookiesWrite],
+  ['tabGroups.group+update+query', probeTabGroups],
+  ['webRequest.events', probeWebRequestEvents],
+  ['scripting.executeScript(MAIN)', probeMainWorldScripting],
+  ['identity.launchWebAuthFlow', probeIdentityApi],
+  ['tabs.captureVisibleTab', probeCaptureVisibleTab]
 ];
 
 /* ------------------------------------------------------------------ */

@@ -20,7 +20,12 @@
     "contextMenus",
     "userScripts",
     "clipboardWrite",
-    "activeTab"
+    "activeTab",
+    "offscreen",
+    "tabGroups",
+    "webRequest",
+    "identity",
+    "debugger"
   ],
   "host_permissions": [
     "<all_urls>"

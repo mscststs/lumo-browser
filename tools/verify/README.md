@@ -23,7 +23,7 @@ bash tools/verify/check-static.sh
 覆盖：所有 JS 过 `node --check`、两个 manifest 过 `python3 -m json.tool`、
 HTML/CSS 无外链与内联脚本、无 `eval`/`new Function`、manifest 关键字段、
 verify 清单条目齐全且 weight 合计 100，最后用 Node + 假 `chrome.*` 表面
-跑一遍 `sw.js`（`sw-harness.js`，验证 24 项都产出、消息路径可用、
+跑一遍 `sw.js`（`sw-harness.js`，验证全部探针项都产出、消息路径可用、
 失败项不会拖垮整轮探针）。
 
 ```bash

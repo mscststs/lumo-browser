@@ -150,7 +150,7 @@ if command -v node >/dev/null 2>&1; then
   HARNESS_OUT="$(mktemp)"
   if node "$VERIFY/sw-harness.js" "$EXT/sw.js" >"$HARNESS_OUT" 2>&1; then
     tail -n 4 "$HARNESS_OUT"
-    ok "SW 冒烟：24 项全部产出，probe:run/content:ready/dnr-effect 路径可用"
+    ok "SW 冒烟：全部探针项产出，probe:run/content:ready/dnr-effect 路径可用"
   else
     cat "$HARNESS_OUT"
     bad "SW 冒烟失败"

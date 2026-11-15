@@ -26,11 +26,14 @@ fi
 step "stage extensions"
 EXT_ROOT="/sdcard/Android/data/$PRODUCT_PKG/files/ext"
 D shell mkdir -p "$EXT_ROOT"
-D shell rm -rf "$EXT_ROOT/probe" "$EXT_ROOT/lumo" "$EXT_ROOT/lumo-userscript-manager"
-D push "$REPO_ROOT/tools/probe-extension" "$EXT_ROOT/probe" >/dev/null
+# NOTE: the probe is staged under a versioned directory so Chrome cannot reuse
+# a cached extension script from an older probe build.
+PROBE_DIR="$EXT_ROOT/probe-v2"
+D shell rm -rf "$PROBE_DIR" "$EXT_ROOT/lumo" "$EXT_ROOT/lumo-userscript-manager"
+D push "$REPO_ROOT/tools/probe-extension" "$PROBE_DIR" >/dev/null
 D push "$EXT_LUMO_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo" >/dev/null
 D push "$EXT_US_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
-CMDLINE="chrome --load-extension=$EXT_ROOT/probe,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager --no-first-run --disable-fre --no-default-browser-check"
+CMDLINE="chrome --load-extension=$PROBE_DIR,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager --no-first-run --disable-fre --no-default-browser-check --remote-debugging-port=9222"
 DR "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
 D shell "printf '%s\n' '$CMDLINE' > /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
 DR "am set-debug-app --persistent $PRODUCT_PKG" || true
@@ -73,6 +76,16 @@ shot "$OUT/screen-03-sidepanel.png"
 ui_dump "$OUT/ui-03-sidepanel.xml"
 grep -o 'text="[^"]*"' "$OUT/ui-03-sidepanel.xml" 2>/dev/null | sed 's/text="//;s/"$//' | grep -v '^$' \
   > "$OUT/sidepanel-strings.txt" || true
+
+# 4c) CDP snapshot: extension service workers + page targets
+step "cdp targets"
+D forward tcp:9222 localabstract:chrome_devtools_remote >/dev/null 2>&1 || true
+sleep 1
+if python3 "$REPO_ROOT/tools/cdp.py" list > "$OUT/cdp-targets.txt" 2>/dev/null; then
+  log "captured $(grep -c service_worker "$OUT/cdp-targets.txt") service workers"
+else
+  warn "CDP not reachable"
+fi
 
 # 5) logcat + probe payload
 step "collect logcat"
