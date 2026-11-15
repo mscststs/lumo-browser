@@ -24,7 +24,7 @@ for p in "${patches[@]}"; do
     continue
   fi
   log "apply: $name"
-  ( cd "$SRC" && git apply --index --whitespace=nowarn "$p" ) \
+  ( cd "$SRC" && git apply --whitespace=nowarn "$p" ) \
     || die "failed to apply $name (rebase needed: git -C $SRC am -3 $p)"
 done
 log "patches applied"

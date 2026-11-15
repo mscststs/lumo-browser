@@ -30,7 +30,7 @@ D shell rm -rf "$EXT_ROOT/probe" "$EXT_ROOT/lumo" "$EXT_ROOT/lumo-userscript-man
 D push "$REPO_ROOT/tools/probe-extension" "$EXT_ROOT/probe" >/dev/null
 D push "$EXT_LUMO_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo" >/dev/null
 D push "$EXT_US_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
-DR "printf 'chrome --load-extension=$EXT_ROOT/probe --load-extension=$EXT_ROOT/lumo --load-extension=$EXT_ROOT/lumo-userscript-manager\n' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
+DR "printf 'chrome --load-extension=%s\n' '$EXT_ROOT/probe,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
 DR "am set-debug-app --persistent $PRODUCT_PKG" || true
 
 # 3) launch with a clean log

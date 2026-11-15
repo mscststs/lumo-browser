@@ -35,8 +35,7 @@ D push "$LUMO_OUT" "$EXT_ROOT/lumo" >/dev/null
 D push "$US_OUT" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
 
 step "register via chrome command line"
-DR "cat > /data/local/tmp/chrome-command-line <<'EOL'
-chrome --load-extension=$EXT_ROOT/lumo --load-extension=$EXT_ROOT/lumo-userscript-manager
-EOL
-chmod 644 /data/local/tmp/chrome-command-line; am force-stop $PRODUCT_PKG"
+# NOTE: Chrome reads a single value per switch; repeat flags overwrite each
+# other, so extensions MUST be comma-separated in one --load-extension.
+DR "printf 'chrome --load-extension=%s\n' '$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line; am force-stop $PRODUCT_PKG"
 log "extensions staged; relaunch the app (scripts/device/launch.sh)"

@@ -1,0 +1,18 @@
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+index 444902a..5861bd0 100644
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -878,10 +878,10 @@ BASE_FEATURE(kEdgeToEdgeMonitorConfigurations, base::FEATURE_ENABLED_BY_DEFAULT)
+ BASE_FEATURE(kEdgeToEdgeTablet, base::FEATURE_ENABLED_BY_DEFAULT);
+ BASE_FEATURE(kEdgeToEdgeTopInset, base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kEdgeToEdgeUseBackupNavbarInsets, base::FEATURE_ENABLED_BY_DEFAULT);
+-BASE_FEATURE(kEnableAndroidSidePanel, base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kEnableAndroidSidePanel, base::FEATURE_ENABLED_BY_DEFAULT);  // Lumo: ship the Android side panel.
+ BASE_FEATURE(kEnableAndroidSidePanelDevFeature, base::FEATURE_DISABLED_BY_DEFAULT);
+-BASE_FEATURE(kEnableAndroidSidePanelLogs, base::FEATURE_DISABLED_BY_DEFAULT);
+-BASE_FEATURE(kEnableAndroidSidePanelManualResizing, base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kEnableAndroidSidePanelLogs, base::FEATURE_ENABLED_BY_DEFAULT);  // Lumo: ship the Android side panel.
++BASE_FEATURE(kEnableAndroidSidePanelManualResizing, base::FEATURE_ENABLED_BY_DEFAULT);  // Lumo: ship the Android side panel.
+ BASE_FEATURE(kEnableAndroidSplitView, base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kEnableBrowserWindowInterfaceForCustomTabActivity, base::FEATURE_ENABLED_BY_DEFAULT);
+ BASE_FEATURE(kEnableSwipeToSwitchPane, base::FEATURE_DISABLED_BY_DEFAULT);

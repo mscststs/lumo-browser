@@ -9,6 +9,9 @@ set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
 CONFIG="${1:-a}"
+# FAST=1 -> non-official build (no ThinLTO): ~2x faster, good for functional
+# iteration on device. Ship builds use FAST=0.
+FAST="${FAST:-1}"
 JOBS="${JOBS:-$(nproc)}"
 OUT_DIR="${OUT_DIR:-out/lumo-$CONFIG}"
 TARGET="${TARGET:-chrome_public_apk}"
@@ -25,37 +28,7 @@ step "applying patches"
 "$REPO_ROOT/scripts/chromium/apply-patches.sh" "$CHROMIUM_SRC"
 
 step "gn gen ($OUT_DIR, config=$CONFIG)"
-GN_ARGS=$(cat <<EOF
-target_os = "android"
-target_cpu = "arm64"
-is_debug = false
-is_official_build = true
-is_component_build = false
-symbol_level = 1
-is_desktop_android = $DESKTOP_ANDROID
-enable_desktop_android_extensions = $EXT_CORE
-disable_fieldtrial_testing_config = true
-proprietary_codecs = true
-ffmpeg_branding = "Chrome"
-enable_arcore = false
-enable_vr = false
-enable_openxr = false
-enable_cardboard = false
-enable_remoting = false
-enable_reporting = false
-google_api_key = "x"
-google_default_client_id = "x"
-google_default_client_secret = "x"
-use_rtti = false
-icu_use_data_file = true
-include_both_v8_snapshots = false
-EOF
-)
-if [[ "$DESKTOP_ANDROID" == "true" ]]; then
-  # Desktop-android builds ship window management; keep ARCORE/VR off.
-  GN_ARGS+=$'\nuse_login_database_as_backend = true'
-fi
-
+GN_ARGS="$(FAST="$FAST" "$REPO_ROOT/scripts/chromium/args.sh" "$CONFIG")"
 ( cd "$CHROMIUM_SRC" && gn gen "$OUT_DIR" --args="$GN_ARGS" )
 
 step "ninja ($TARGET, jobs=$JOBS)"

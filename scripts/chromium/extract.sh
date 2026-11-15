@@ -10,7 +10,7 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
-TB="${1:-$(ls -t "$REPO_ROOT"/artifacts/src/chromium-*.tar.xz 2>/dev/null | head -1 || true)}"
+TB="${1:-$(ls -t "$REPO_ROOT"/artifacts/src/chromium-*.tar.xz "$HOME"/artifacts/src/chromium-*.tar.xz 2>/dev/null | head -1 || true)}"
 [[ -n "$TB" && -f "$TB" ]] || die "no tarball found (download: chromium-browser-official/chromium-<ver>.tar.xz)"
 [[ -f "$TB.hashes" ]] || warn "no .hashes file next to tarball; skipping digest check"
 
@@ -19,9 +19,11 @@ if [[ -d "$CHROMIUM_SRC" && -f "$CHROMIUM_SRC/DEPS" ]]; then
 else
   step "extract $(basename "$TB") ($(du -h "$TB" | cut -f1))"
   mkdir -p "$CHROMIUM_ROOT"
-  INNER="$(tar -tf "$TB" | head -1 | cut -d/ -f1)"
   xz -dc -T0 "$TB" | tar -xf - -C "$CHROMIUM_ROOT"
-  [[ -d "$CHROMIUM_ROOT/$INNER" ]] || die "unexpected tarball layout"
+  # NOTE: avoid `... | head` here - pipefail + SIGPIPE would abort the script.
+  mapfile -t tops < <(find "$CHROMIUM_ROOT" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort)
+  INNER="${tops[0]:-}"
+  [[ -n "$INNER" && -d "$CHROMIUM_ROOT/$INNER" ]] || die "unexpected tarball layout in $CHROMIUM_ROOT"
   rm -rf "$CHROMIUM_SRC"
   mv "$CHROMIUM_ROOT/$INNER" "$CHROMIUM_SRC"
 fi
