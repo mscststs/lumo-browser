@@ -27,6 +27,9 @@ esac
 step "applying patches"
 "$REPO_ROOT/scripts/chromium/apply-patches.sh" "$CHROMIUM_SRC"
 
+step "branding"
+"$REPO_ROOT/scripts/chromium/brand.sh"
+
 step "gn gen ($OUT_DIR, config=$CONFIG)"
 GN_ARGS="$(FAST="$FAST" "$REPO_ROOT/scripts/chromium/args.sh" "$CONFIG")"
 ( cd "$CHROMIUM_SRC" && gn gen "$OUT_DIR" --args="$GN_ARGS" )

@@ -51,6 +51,8 @@ google_default_client_secret = "x"
 use_rtti = false
 icu_use_data_file = true
 include_both_v8_snapshots = false
+# Product identity (Lumo Browser).
+chrome_public_manifest_package = "dev.lumo.browser"
 EOF
 
 if [[ "$EXT_CORE" == "true" ]]; then

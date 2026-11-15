@@ -1,0 +1,48 @@
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/ExtensionActionListCoordinator.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/ExtensionActionListCoordinator.java
+@@ -239,6 +239,14 @@
+         }
+ 
+         /**
++         * Lumo: the extensions toolbar container itself, used as a fallback anchor when an action
++         * has no inline button (phones collapse the action list when the toolbar is crowded).
++         */
++        public View getContainerView() {
++            return ExtensionActionListCoordinator.this.mContainer;
++        }
++
++        /**
+          * Adds a {@link Runnable} to the RecyclerView container that will be executed after a
+          * layout phase or animation cycle completes.
+          *
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/ExtensionActionListMediator.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/ExtensionActionListMediator.java
+@@ -712,7 +712,11 @@
+ 
+         ListMenuButton buttonView =
+                 (ListMenuButton) mRecyclerViewDelegate.getButtonViewForId(actionId);
+-        if (buttonView == null) {
++        // Lumo: on phones the action list may be collapsed into the extensions
++        // menu, so there is no inline button to anchor to. Fall back to the
++        // extensions toolbar container instead of silently dropping the popup.
++        View anchorView = buttonView != null ? buttonView : mRecyclerViewDelegate.getContainerView();
++        if (anchorView == null) {
+             contents.destroy();
+             mActionState = new ActionState.Idle();
+             undoPopout();
+@@ -730,13 +734,13 @@
+         // the "pressed" look while loading the action popup too. For context menu {@link
+         // ListMenuButton} already handles this, but not for popup where we show the window
+         // ourselves.
+-        buttonView.setIsPressed(true);
++        if (buttonView != null) buttonView.setIsPressed(true);
+ 
+         ExtensionActionPopup popup =
+                 new ExtensionActionPopup(
+                         activity,
+                         mWindowAndroid,
+-                        buttonView,
++                        anchorView,
+                         actionId,
+                         contents,
+                         mContextMenuPopulatorFactory,

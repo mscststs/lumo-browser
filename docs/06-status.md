@@ -1,44 +1,41 @@
-# 当前状态（2026-11-16 02:20 设备时间）
+# 当前状态（2026-11-16 03:25 设备时间）
 
-## 已验证（真机 Redmi K20 Pro / Android 11 / arm64）
+产品名：**Lumo**　包名：`dev.lumo.browser`　内核：Chromium 160.0.8157.0（official，arm64）
 
-| 项 | 结果 | 证据 |
+## 已实现并验证
+
+| 能力 | 状态 | 证据 |
 |---|---|---|
-| 自构建 APK 安装启动 | ✅ | `artifacts/apk/lumo-a-20261115-1813.apk`（Chromium 160.0.8157.0，official，343MB） |
-| GPU | ⚠️ ES2 回退运行（`patches/0006`） | logcat 无 `GPU process isn't usable` |
-| 命令行装载扩展（免 root 路径） | ✅ | `cr_CommandLine ... (from /storage/emulated/0/Android/data/org.chromium.chrome/files/chrome-command-line)`（`patches/0001`） |
-| 三个扩展加载 | ✅ | 扩展页：Lumo 1.0.27 / Lumo MV3 Probe 0.1.0 / Lumo 用户脚本管理器 |
-| Service Worker | ✅ | 扩展页「检查视图：Service Worker」 |
-| 扩展菜单（手机底部弹层） | ✅ | 站点开关 + 每扩展开关 + 固定到工具栏 + 探索 + 管理（`patches/0002`） |
-| `chrome://extensions` 管理页 | ✅ | 开发者模式、加载未打包、打包、更新 |
-| MV3 能力探针 | ✅ 19/24（5 项为设计内不发权限/环境限制） | `PROBE_JSON`：storage/alarms/tabs/cookies/notifications/contextMenus/webNavigation/DNR/sidePanel API/downloads/i18n/action 全通过；`userScripts` 未暴露 |
-| sidePanel 后端 | ✅ 已注册（`Toggle - key: kExtension...`） | `patches/0003` 启用 feature；`patches/0007` 窄屏 overlay |
-| sidePanel 打开入口 | ❌ 未接（扩展 action 点击不会打开面板） | 下一步 |
+| 自构建 APK | ✅ 344MB | `artifacts/apk/lumo-a-*.apk` |
+| 品牌化 | ✅ 应用名 Lumo / 包名 dev.lumo.browser / 图标 | `scripts/chromium/brand.sh` |
+| GPU | ✅ ES2 回退运行（Adreno/ANGLE ES3 失败不再崩） | `patches/0006` |
+| 扩展装载（无 root 也可靠） | ✅ 从 app 外部目录读命令行 | `patches/0001` |
+| 三个扩展 + 探针 | ✅ Lumo 1.0.27 / Lumo MV3 Probe / Lumo 用户脚本管理器 | `chrome://extensions` |
+| Service Worker | ✅ 均在运行 | 扩展页「检查视图」 |
+| **手机 side panel = 可拖拽 Bottom Sheet** | ✅ peek(64dp) / 收起(45%) / 展开(75%)，页面始终可见可交互，面板不销毁 | `artifacts/verify/sheet2-*.png` |
+| **平板/宽屏 side panel = 桌面式并排 + 可拖拽宽度** | ✅ 右侧 540px，页宽不受影响；拖动分隔条调整 | `artifacts/verify/tablet-panel.png` |
+| 扩展 popup（工具栏气泡） | ✅ 用户脚本管理器的 popup 正常显示 | `artifacts/verify/us-popup2.png` |
+| `chrome.userScripts` | ✅ 默认开放（可关），注册 + 真实执行成功 | `artifacts/verify/userscript-proof.png`（页面出现 `LUMO_USERSCRIPT_OK`） |
+| `scripting.executeScript` | ✅ 隔离世界注入并返回 | 探针 `isolatedMarker: true` |
+| MV3 探针 | ✅ 22/24（余 2 项为未声明权限的对照项） | `PROBE_JSON` |
+| `chrome://extensions` 管理页 | ✅ 开发者模式 / 加载未打包 / 打包 / 更新 | 截图 |
 
-## 未完成（按优先级）
+## 关键补丁
 
-1. **sidePanel 打开入口**：扩展 action 点击 → 若 `sidePanel.getOptions().enabled` 则打开面板；扩展菜单加「打开侧栏」。
-2. **`chrome.userScripts` 用户开关**：上游为显式 opt-in；需要设置项 + 扩展详情页开关，否则 `../lumo-userscript-manager` 核心功能不可用。
-3. **普通网页上的 `scripting.executeScript` / content script 验证**（探针当时活动页是 chrome:// 或空白页）。
-4. **品牌化**：包名 `dev.lumo.browser`、应用名/图标、默认搜索引擎/主页。
-5. **工具栏 action 图标**：现在只能通过扩展菜单操作；pin 到工具栏后的图标布局需验证（`patches/0002` 已提供容器）。
-6. 构建产物瘦身（去掉 ARCORE/OPENXR 等未用组件）。
-
-## 复现命令
-
-```bash
-FAST=0 OUT_DIR=out/lumo-rel scripts/chromium/build.sh a
-scripts/device/install.sh
-scripts/device/run.sh            # 装扩展 + 启动 + 截图
-```
-
-## 补丁清单
-
-| 补丁 | 作用 |
+| 补丁 | 内容 |
 |---|---|
 | 0001 | 从 app 外部目录读取 chrome 命令行（CI/自动化装载扩展） |
 | 0002 | 手机扩展工具栏（容器 + ToolbarPhone 接收 coordinator + 去掉 tablet 强转） |
-| 0003 | 默认启用 Android side panel feature |
-| 0005 | 尊重 `--disable-features=Vulkan`（避免 WebGPU interop 强拉 Vulkan） |
-| 0006 | GPU 信息收集允许 ES2 回退（Adreno/ANGLE ES3 失败不再崩溃） |
-| 0007 | 窄窗口 side panel 全宽 overlay |
+| 0003 | 默认启用 Android side panel（含手动改宽 feature） |
+| 0005 | 尊重 `--disable-features=Vulkan` |
+| 0006 | GPU 信息收集允许 ES2 回退 |
+| 0008 | `userScripts` 改为默认允许（可关闭） |
+| 0009 | popup 无内联按钮时回退到扩展容器作为锚点 |
+| 0010 | **side panel 双形态**：窄屏 Bottom Sheet（拖拽/peek），宽屏并排可调宽 |
+
+## 下一步
+
+1. Lumo 侧栏接入真实模型后的端到端验证（需用户提供 provider key）。
+2. 工具栏 action 图标的固定/排序体验打磨。
+3. 设置页增加「允许用户脚本」开关（当前默认开）。
+4. 发布流水线（签名、更新、Play/侧载策略）。

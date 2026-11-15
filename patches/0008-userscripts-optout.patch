@@ -1,0 +1,17 @@
+--- a/extensions/browser/user_script_manager.cc
++++ b/extensions/browser/user_script_manager.cc
+@@ -248,7 +248,13 @@
+ 
+ bool UserScriptManager::IsUserScriptPrefEnabled(
+     const ExtensionId& extension_id) const {
+-  bool user_scripts_pref_allowed = false;
++  // Lumo: user scripts are opt-out rather than opt-in. Chrome ships the
++  // `userScripts` API disabled until the user flips a per-extension toggle that
++  // only appears after the API is already available, which leaves
++  // userscript-manager style extensions permanently broken on a fresh install.
++  // Extensions still have to declare the `userScripts` permission, and users
++  // can turn the toggle off again.
++  bool user_scripts_pref_allowed = true;
+   ExtensionPrefs::Get(browser_context_)
+       ->ReadPrefAsBoolean(extension_id, kUserScriptsAllowedPref,
+                           &user_scripts_pref_allowed);

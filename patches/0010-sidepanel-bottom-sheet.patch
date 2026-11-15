@@ -1,0 +1,275 @@
+--- a/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelContainerCoordinatorImpl.java
++++ b/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelContainerCoordinatorImpl.java
+@@ -68,6 +68,11 @@
+     private final TopControlsStacker mTopControlsStacker;
+     private final IncognitoStateProvider mIncognitoStateProvider;
+     private final SidePanelResizeManager mResizeManager;
++    /**
++     * Lumo: bottom-sheet host used on narrow windows. On wide windows the panel keeps the
++     * upstream side-by-side layout (with the manual resize handle).
++     */
++    private final SidePanelBottomSheet mBottomSheet;
+ 
+     private @Nullable SidePanelContent mCurrentContent;
+ 
+@@ -127,6 +132,7 @@
+         mIncognitoStateProvider = incognitoStateProvider;
+         mResizeManager =
+                 new SidePanelResizeManager(activity, this::getContentViewToPinDuringResize);
++        mBottomSheet = new SidePanelBottomSheet(activity, mContainerView, mInnerContainerView);
+     }
+ 
+     ///////////////////////////////////////////////////////////////////////////////////////////////
+@@ -469,6 +475,13 @@
+         log(TAG, "determineShowableSize", availableWidth, windowWidth, isFullscreen);
+         ThreadUtils.assertOnUiThread();
+ 
++        if (isNarrowWindow()) {
++            // Lumo: phones present the panel as a bottom sheet overlay. Reserve a single pixel so
++            // the page keeps its full width and stays interactive; the sheet itself is attached to
++            // the activity content view instead of the side-by-side side UI container.
++            return new SideUiSize(1, HeightType.WEB_CONTENTS);
++        }
++
+         if (mSimulateAutoCloseConditionForTesting) {
+             return new SideUiSize(0, HeightType.NOT_APPLICABLE);
+         }
+@@ -504,6 +517,19 @@
+         log(TAG, "setRenderedWidth", renderedWidth);
+         ThreadUtils.assertOnUiThread();
+ 
++        if (isNarrowWindow()) {
++            if (renderedWidth == 0) {
++                mBottomSheet.detach();
++                getContentContainer().removeAllViews();
++                mCurrentContent = null;
++                mResizeManager.clearLiveResizeState();
++            } else {
++                mBottomSheet.attach();
++                mBottomSheet.updateLayout();
++            }
++            return;
++        }
++
+         LayoutParams layoutParams = mContainerView.getLayoutParams();
+         assert layoutParams != null
+                 : "setRenderedWidth() should be called after the container View is attached";
+@@ -872,6 +898,14 @@
+         }
+     }
+ 
++    /**
++     * Lumo: whether the panel should use the bottom-sheet presentation. 600dp is the conventional
++     * Material breakpoint between phone and tablet layouts.
++     */
++    private boolean isNarrowWindow() {
++        return mContainerView.getResources().getConfiguration().screenWidthDp < 600;
++    }
++
+     private ViewGroup getContentContainer() {
+         return (ViewGroup) mContainerView.findViewById(R.id.side_panel_content_container);
+     }
+--- /dev/null
++++ b/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelBottomSheet.java
+@@ -0,0 +1,191 @@
++// Copyright 2026 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++package org.chromium.chrome.browser.ui.side_panel;
++
++import android.app.Activity;
++import android.content.Context;
++import android.graphics.drawable.GradientDrawable;
++import android.util.TypedValue;
++import android.view.Gravity;
++import android.view.MotionEvent;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.FrameLayout;
++import android.widget.LinearLayout;
++
++import androidx.annotation.Nullable;
++
++import org.chromium.build.annotations.NullMarked;
++
++/**
++ * Lumo: hosts the side panel as a draggable bottom sheet on narrow (phone) windows.
++ *
++ * <p>Unlike the side-by-side layout used on wide windows, the sheet never squeezes the page: it is
++ * attached to the activity's content view as an overlay, so the page keeps its full width and stays
++ * interactive above the sheet. The panel content itself is kept attached when the sheet is
++ * collapsed to its peek height, so collapsing never tears down the extension's WebContents.
++ */
++@NullMarked
++class SidePanelBottomSheet {
++    /** Height of the collapsed "peek" state: drag handle + header row. */
++    private static final int PEEK_DP = 64;
++
++    private static final float COLLAPSED_RATIO = 0.45f;
++    private static final float EXPANDED_RATIO = 0.75f;
++
++    private final Context mContext;
++    private final FrameLayout mContainerView;
++    private final LinearLayout mInnerContainerView;
++    private final View mHandleView;
++
++    private @Nullable ViewGroup mHost;
++    private int mHeightPx;
++    private int mPeekPx;
++    private int mCollapsedPx;
++    private int mExpandedPx;
++
++    SidePanelBottomSheet(
++            Activity activity, FrameLayout containerView, LinearLayout innerContainerView) {
++        mContext = activity;
++        mContainerView = containerView;
++        mInnerContainerView = innerContainerView;
++        mHandleView = createHandleView();
++        // Place the drag handle above the panel header (which has the title + close button).
++        LinearLayout.LayoutParams handleParams =
++                new LinearLayout.LayoutParams(dp(36), dp(4));
++        handleParams.gravity = Gravity.CENTER_HORIZONTAL;
++        handleParams.topMargin = dp(8);
++        handleParams.bottomMargin = dp(4);
++        mInnerContainerView.addView(mHandleView, 0, handleParams);
++        mHandleView.setOnTouchListener(this::onHandleTouch);
++        mHandleView.setOnClickListener(v -> togglePeek());
++        mPeekPx = dp(PEEK_DP);
++        mHeightPx = -1; // Set on attach.
++    }
++
++    private View createHandleView() {
++        View handle = new View(mContext);
++        GradientDrawable bg = new GradientDrawable();
++        bg.setColor(0x33000000);
++        bg.setCornerRadius(dp(2));
++        handle.setBackground(bg);
++        handle.setContentDescription("拖动调整侧栏高度");
++        return handle;
++    }
++
++    private int dp(int value) {
++        return (int) TypedValue.applyDimension(
++                TypedValue.COMPLEX_UNIT_DIP, value, mContext.getResources().getDisplayMetrics());
++    }
++
++    /** Whether the sheet is currently attached to the activity's content view. */
++    boolean isAttached() {
++        return mHost != null && mContainerView.getParent() == mHost;
++    }
++
++    /** Attaches the sheet to the activity content view at its current height. */
++    void attach() {
++        if (isAttached()) return;
++        Activity activity = (Activity) mContext;
++        View content = activity.findViewById(android.R.id.content);
++        if (!(content instanceof ViewGroup)) return;
++        if (mContainerView.getParent() instanceof ViewGroup) {
++            ((ViewGroup) mContainerView.getParent()).removeView(mContainerView);
++        }
++        recomputeHeights(content.getHeight() > 0 ? content.getHeight() : screenHeightPx());
++        if (mHeightPx <= 0) mHeightPx = mCollapsedPx;
++        FrameLayout.LayoutParams lp =
++                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, mHeightPx);
++        lp.gravity = Gravity.BOTTOM;
++        mHost = (ViewGroup) content;
++        mHost.addView(mContainerView, lp);
++        mContainerView.setElevation(dp(12));
++        mContainerView.requestLayout();
++    }
++
++    /** Detaches the sheet (panel is being closed). */
++    void detach() {
++        if (mContainerView.getParent() instanceof ViewGroup) {
++            ((ViewGroup) mContainerView.getParent()).removeView(mContainerView);
++        }
++        mHost = null;
++    }
++
++    /** Applies the sheet's layout params; the sheet ignores the side-by-side reserved width. */
++    void updateLayout() {
++        if (!isAttached()) return;
++        ViewGroup.LayoutParams params = mContainerView.getLayoutParams();
++        if (params instanceof FrameLayout.LayoutParams frameParams) {
++            frameParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
++            frameParams.height = mHeightPx;
++            frameParams.gravity = Gravity.BOTTOM;
++            mContainerView.setLayoutParams(frameParams);
++        }
++    }
++
++    private int screenHeightPx() {
++        return mContext.getResources().getDisplayMetrics().heightPixels;
++    }
++
++    private void recomputeHeights(int availableHeightPx) {
++        int max = (int) (availableHeightPx * EXPANDED_RATIO);
++        mExpandedPx = Math.max(mPeekPx * 2, max);
++        mCollapsedPx = Math.max(mPeekPx + dp(24), (int) (availableHeightPx * COLLAPSED_RATIO));
++        mExpandedPx = Math.max(mExpandedPx, mCollapsedPx);
++    }
++
++    private void setHeightPx(int heightPx) {
++        mHeightPx = Math.max(mPeekPx, Math.min(heightPx, mExpandedPx));
++        updateLayout();
++    }
++
++    private void togglePeek() {
++        setHeightPx(mHeightPx <= mPeekPx + dp(4) ? mCollapsedPx : mPeekPx);
++    }
++
++    private boolean onHandleTouch(View view, MotionEvent event) {
++        switch (event.getActionMasked()) {
++            case MotionEvent.ACTION_DOWN:
++                mDragStartY = event.getRawY();
++                mDragStartHeight = mHeightPx;
++                return true;
++            case MotionEvent.ACTION_MOVE:
++                if (mDragStartY < 0) return false;
++                int delta = (int) (mDragStartY - event.getRawY());
++                if (Math.abs(delta) > dp(4)) mDragged = true;
++                // Dragging up grows the sheet, dragging down shrinks it.
++                setHeightPx(mDragStartHeight + delta);
++                return true;
++            case MotionEvent.ACTION_UP:
++            case MotionEvent.ACTION_CANCEL:
++                boolean wasDrag = mDragged;
++                mDragStartY = -1;
++                mDragged = false;
++                snapToNearestState();
++                if (!wasDrag) view.performClick();
++                return true;
++            default:
++                return false;
++        }
++    }
++
++    private float mDragStartY = -1;
++    private int mDragStartHeight;
++    private boolean mDragged;
++
++    private void snapToNearestState() {
++        int[] states = {mPeekPx, mCollapsedPx, mExpandedPx};
++        int best = states[0];
++        for (int state : states) {
++            if (Math.abs(state - mHeightPx) < Math.abs(best - mHeightPx)) best = state;
++        }
++        setHeightPx(best);
++    }
++
++    /** Whether the sheet is collapsed to the peek height. */
++    boolean isPeeking() {
++        return mHeightPx <= mPeekPx + dp(4);
++    }
++}
+--- a/chrome/browser/ui/side_panel/internal/android/BUILD.gn
++++ b/chrome/browser/ui/side_panel/internal/android/BUILD.gn
+@@ -103,6 +103,7 @@
+   sources = [
+     "java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelContainerCoordinatorFactory.java",
+     "java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelContainerCoordinatorImpl.java",
++    "java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelBottomSheet.java",
+     "java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelCoordinatorAndroidBridge.java",
+     "java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelNativeBridgeSelector.java",
+     "java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelResizeManager.java",
