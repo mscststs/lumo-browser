@@ -40,8 +40,13 @@ PY2
 grep -E "^checkout_android|^checkout_openxr" "$GA" || true
 
 step "LASTCHANGE"
-printf 'lumo-%s\n' "$VER" > "$CHROMIUM_SRC/build/util/LASTCHANGE"
-printf 'lumo-%s\n' "$VER" > "$CHROMIUM_SRC/build/util/LASTCHANGE.blink"
+# version.py requires a 40-char revision prefix; the real value would come from
+# a git hook. Keep it synthetic and stable.
+# NOTE: build/util/version.py parses LASTCHANGE as KEY=VALUE lines, and
+# *LASTCHANGE:* in version templates is "hash-refs/heads/main".
+LC='0123456789abcdef0123456789abcdef01234567'
+printf 'LASTCHANGE=%s-refs/heads/main\n' "$LC" > "$CHROMIUM_SRC/build/util/LASTCHANGE"
+printf 'LASTCHANGE=%s-refs/heads/main\n' "$LC" > "$CHROMIUM_SRC/build/util/LASTCHANGE.blink"
 date +%s > "$CHROMIUM_SRC/build/util/LASTCHANGE.committime"
 
 step "verify"
