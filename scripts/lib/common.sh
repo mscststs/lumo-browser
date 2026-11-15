@@ -17,6 +17,11 @@ export PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
 export DEVICE_SERIAL="${DEVICE_SERIAL:-$(adb devices | awk 'NR>1 && $2=="device"{print $1; exit}')}"
 
 # --- Product ---------------------------------------------------------------
+# Adopt package/activity from the last built APK when available.
+if [[ -z "${PRODUCT_PKG:-}" && -f "${APK_OUT:-}/meta.env" ]]; then
+  # shellcheck disable=SC1091
+  source "$APK_OUT/meta.env"
+fi
 export PRODUCT_PKG="${PRODUCT_PKG:-dev.lumo.browser}"
 export APK_OUT="${APK_OUT:-$REPO_ROOT/artifacts/apk}"
 

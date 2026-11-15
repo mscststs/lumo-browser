@@ -37,5 +37,11 @@ D push "$US_OUT" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
 step "register via chrome command line"
 # NOTE: Chrome reads a single value per switch; repeat flags overwrite each
 # other, so extensions MUST be comma-separated in one --load-extension.
-DR "printf 'chrome --load-extension=%s\n' '$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line; am force-stop $PRODUCT_PKG"
+# We write the app-external command line file (patches/0001) *and* the classic
+# debug-app one, so the flow works with or without the patch.
+CMDLINE="chrome --load-extension=$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager"
+DR "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
+D shell "printf '%s\n' '$CMDLINE' > /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
+DR "am set-debug-app --persistent $PRODUCT_PKG" || true
+DR "am force-stop $PRODUCT_PKG"
 log "extensions staged; relaunch the app (scripts/device/launch.sh)"

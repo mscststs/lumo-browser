@@ -30,7 +30,9 @@ D shell rm -rf "$EXT_ROOT/probe" "$EXT_ROOT/lumo" "$EXT_ROOT/lumo-userscript-man
 D push "$REPO_ROOT/tools/probe-extension" "$EXT_ROOT/probe" >/dev/null
 D push "$EXT_LUMO_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo" >/dev/null
 D push "$EXT_US_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
-DR "printf 'chrome --load-extension=%s\n' '$EXT_ROOT/probe,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
+CMDLINE="chrome --load-extension=$EXT_ROOT/probe,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager"
+DR "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
+D shell "printf '%s\n' '$CMDLINE' > /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
 DR "am set-debug-app --persistent $PRODUCT_PKG" || true
 
 # 3) launch with a clean log
@@ -53,6 +55,23 @@ if open_extensions_page; then
 else
   warn "could not reach chrome://extensions through the menu"
 fi
+
+# 4b) side panel: tap the probe extension's action from the extensions menu and
+# check whether a panel surface appears (bottom sheet). This is the v0.1 product
+# delta; upstream only ships the container behind a flag.
+step "side panel probe"
+tap_text "Customize and control" || tap_text "更多选项" || true
+sleep 1
+tap_text "扩展程序" || tap_text "Extensions" || true
+sleep 1
+tap_text "打开扩展程序菜单" || tap_text "Open extensions menu" || true
+sleep 2
+tap_text "Lumo MV3 Probe" || true
+sleep 4
+shot "$OUT/screen-03-sidepanel.png"
+ui_dump "$OUT/ui-03-sidepanel.xml"
+grep -o 'text="[^"]*"' "$OUT/ui-03-sidepanel.xml" 2>/dev/null | sed 's/text="//;s/"$//' | grep -v '^$' \
+  > "$OUT/sidepanel-strings.txt" || true
 
 # 5) logcat + probe payload
 step "collect logcat"
