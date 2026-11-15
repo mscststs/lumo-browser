@@ -33,6 +33,24 @@
 | 0009 | popup 无内联按钮时回退到扩展容器作为锚点 |
 | 0010 | **side panel 双形态**：窄屏 Bottom Sheet（拖拽/peek），宽屏并排可调宽 |
 
+## 验收命令与证据
+
+```bash
+scripts/device/verify.sh
+# → artifacts/verify/<run>/screen-02-extensions.png（三个扩展 + Service Worker 状态）
+# → probe.json（22/24）
+# → screen-03-sidepanel.png（手机底部抽屉打开 Lumo 侧栏）
+```
+
+宽屏验证方法与证据：
+
+```bash
+adb shell wm size 2160x1600; adb shell wm density 240   # 模拟平板（1440dp 宽）
+# 打开扩展菜单 → Lumo → 右侧并排面板 + 可拖拽分隔条
+adb shell wm size reset; adb shell wm density reset
+```
+截图：`artifacts/verify/tablet-panel.png`
+
 ## 下一步
 
 1. Lumo 侧栏接入真实模型后的端到端验证（需用户提供 provider key）。

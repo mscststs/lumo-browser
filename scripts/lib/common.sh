@@ -100,15 +100,75 @@ PY
   log "tapped '$needle' at $xy"
 }
 
+# Tap the switch/checkbox that sits on the same row as <label> (WebUI settings).
+tap_switch_near() {
+  local label="$1"
+  local tmp; tmp="$(mktemp)"
+  ui_dump "$tmp"
+  local xy
+  xy="$(python3 - "$tmp" "$label" <<'PY2'
+import re, sys
+path, label = sys.argv[1], sys.argv[2]
+s = open(path, encoding='utf-8', errors='ignore').read()
+row_y = None
+for m in re.finditer(r'<node[^>]*>', s):
+    tag = m.group(0)
+    t = re.search(r'text="([^"]*)"', tag)
+    if t and label in t.group(1):
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', tag)
+        if b:
+            row_y = (int(b.group(2)) + int(b.group(4))) // 2
+            break
+if row_y is None:
+    sys.exit(1)
+best = None
+for m in re.finditer(r'<node[^>]*>', s):
+    tag = m.group(0)
+    c = re.search(r'class="([^"]*)"', tag)
+    if not c or 'Switch' not in c.group(1):
+        continue
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', tag)
+    if not b:
+        continue
+    y = (int(b.group(2)) + int(b.group(4))) // 2
+    if abs(y - row_y) <= 40:
+        best = ((int(b.group(1)) + int(b.group(3))) // 2, y)
+        break
+if best is None:
+    sys.exit(1)
+print(*best)
+PY2
+)"
+  rm -f "$tmp"
+  [[ -n "$xy" ]] || return 1
+  DR "input tap $xy"
+  log "toggled switch next to '$label' at $xy"
+}
+
+# Open the extensions toolbar menu (per-extension switches + manage entries).
+open_extensions_menu() {
+  tap_text "自定义及控制" || tap_text "Customize and control" || tap_text "已允许在此网站上使用扩展程序" \
+    || tap_text "允许在此网站上使用扩展程序" || { warn "cannot open overflow/extensions menu"; return 1; }
+  sleep 1
+  tap_text "打开扩展程序菜单" || tap_text "Open extensions menu" || true
+  sleep 2
+}
+
 # Open chrome://extensions in the running browser using the overflow menu
 # (chrome:// URLs are rejected by the intent dispatcher on release builds).
 open_extensions_page() {
   tap_text "自定义及控制" || tap_text "Customize and control" || tap_text "更多选项" || \
     tap_text "More options" || tap_text "主菜单" || { warn "overflow button not found"; return 1; }
   sleep 1
-  tap_text "扩展程序" || tap_text "Extensions" || { warn "extensions menu item not found"; return 1; }
-  sleep 1
-  tap_text "管理扩展程序" || tap_text "Manage extensions" || tap_text "扩展程序" || { warn "manage-extensions entry not found"; return 1; }
+  # Lumo/Chromium build: the overflow menu exposes "打开扩展程序菜单" directly.
+  if ! tap_text "打开扩展程序菜单" && ! tap_text "Open extensions menu"; then
+    # Older layout: a nested "扩展程序" submenu.
+    tap_text "扩展程序" || tap_text "Extensions" || { warn "extensions menu item not found"; return 1; }
+    sleep 1
+    tap_text "打开扩展程序菜单" || tap_text "Open extensions menu" || true
+  fi
+  sleep 2
+  tap_text "管理扩展程序" || tap_text "Manage extensions" || { warn "manage-extensions entry not found"; return 1; }
   sleep 3
 }
 

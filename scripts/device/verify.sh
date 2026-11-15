@@ -48,6 +48,8 @@ ui_dump "$OUT/ui-01-home.xml"
 step "extensions page"
 if open_extensions_page; then
   sleep 4
+  tap_switch_near "开发者模式" || tap_text "开发者模式" || tap_text "Developer mode" || true
+  sleep 2
   shot "$OUT/screen-02-extensions.png"
   ui_dump "$OUT/ui-02-extensions.xml"
   grep -o 'text="[^"]*"' "$OUT/ui-02-extensions.xml" | sed 's/text="//;s/"$//' | grep -v '^$' \
@@ -56,17 +58,16 @@ else
   warn "could not reach chrome://extensions through the menu"
 fi
 
+# leave chrome://extensions and open a real page before testing the side panel
+open_url "https://example.com/"
+sleep 6
+
 # 4b) side panel: tap the probe extension's action from the extensions menu and
 # check whether a panel surface appears (bottom sheet). This is the v0.1 product
 # delta; upstream only ships the container behind a flag.
 step "side panel probe"
-tap_text "Customize and control" || tap_text "更多选项" || true
-sleep 1
-tap_text "扩展程序" || tap_text "Extensions" || true
-sleep 1
-tap_text "打开扩展程序菜单" || tap_text "Open extensions menu" || true
-sleep 2
-tap_text "Lumo MV3 Probe" || true
+open_extensions_menu || true
+tap_text "Lumo" || true
 sleep 4
 shot "$OUT/screen-03-sidepanel.png"
 ui_dump "$OUT/ui-03-sidepanel.xml"
