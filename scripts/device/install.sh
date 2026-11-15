@@ -12,6 +12,14 @@ need_device
 APK="${1:-$APK_OUT/lumo-latest.apk}"
 [[ -f "$APK" ]] || die "apk not found: $APK"
 
+# Derive package name + launcher activity, and cache them for other scripts.
+"$REPO_ROOT/scripts/device/apk-meta.sh" "$APK" $(: '' ) || true
+if [[ -f "$APK_OUT/meta.env" ]]; then
+  # shellcheck disable=SC1091
+  source "$APK_OUT/meta.env"
+  export PRODUCT_PKG
+fi
+
 REMOTE="/data/local/tmp/lumo-install.apk"
 step "push $(du -h "$APK" | cut -f1) -> $REMOTE"
 D push "$APK" "$REMOTE" >/dev/null
