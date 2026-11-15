@@ -17,13 +17,13 @@ export PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
 export DEVICE_SERIAL="${DEVICE_SERIAL:-$(adb devices | awk 'NR>1 && $2=="device"{print $1; exit}')}"
 
 # --- Product ---------------------------------------------------------------
+export APK_OUT="${APK_OUT:-$REPO_ROOT/artifacts/apk}"
 # Adopt package/activity from the last built APK when available.
 if [[ -z "${PRODUCT_PKG:-}" && -f "${APK_OUT:-}/meta.env" ]]; then
   # shellcheck disable=SC1091
   source "$APK_OUT/meta.env"
 fi
 export PRODUCT_PKG="${PRODUCT_PKG:-dev.lumo.browser}"
-export APK_OUT="${APK_OUT:-$REPO_ROOT/artifacts/apk}"
 
 # Reference extensions (siblings of this repo).
 export EXT_LUMO_DIR="${EXT_LUMO_DIR:-$REPO_ROOT/../lumo}"
@@ -115,8 +115,13 @@ open_extensions_page() {
 # Launch the browser main activity.
 launch_browser() {
   DR "am force-stop $PRODUCT_PKG" || true
-  DR "monkey -p $PRODUCT_PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1 \
-    || DR "am start -n $PRODUCT_PKG/\${MAIN_ACTIVITY:-com.google.android.apps.chrome.Main}" >/dev/null
+  if DR "monkey -p $PRODUCT_PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1; then
+    :
+  elif [[ -n "${MAIN_ACTIVITY:-}" ]]; then
+    DR "am start -n $PRODUCT_PKG/$MAIN_ACTIVITY" >/dev/null
+  else
+    die "cannot launch $PRODUCT_PKG (no launcher activity)"
+  fi
   log "launched $PRODUCT_PKG"
 }
 

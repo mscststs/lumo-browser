@@ -15,13 +15,24 @@ case "$CONFIG" in
   *) echo "unknown config '$CONFIG' (use a|b)" >&2; exit 1 ;;
 esac
 
-if [[ "$FAST" == "1" ]]; then OFFICIAL=false; SYMBOLS=0; else OFFICIAL=true; SYMBOLS=1; fi
+if [[ "$FAST" == "1" ]]; then
+  OFFICIAL=false; SYMBOLS=0; THIN_LTO=false
+else
+  # Release config. NOTE: non-official Android builds enable UBSan "hardening"
+  # traps (array-bounds/return/unreachable) and DCHECK_ALWAYS_ON, which abort
+  # silently in the GPU process on some drivers. Official builds are required
+  # for a runnable device build.
+  OFFICIAL=true; SYMBOLS=0; THIN_LTO=${THIN_LTO:-false}
+fi
 
 cat <<EOF
 target_os = "android"
 target_cpu = "arm64"
 is_debug = false
 is_official_build = $OFFICIAL
+use_thin_lto = $THIN_LTO
+# The official tarball ships no PGO profiles (they come from a DEPS GCS entry).
+chrome_pgo_phase = 0
 is_component_build = false
 symbol_level = $SYMBOLS
 is_desktop_android = $DESKTOP_ANDROID

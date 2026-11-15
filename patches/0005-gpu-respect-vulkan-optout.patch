@@ -1,0 +1,35 @@
+--- a/gpu/ipc/service/gpu_init_2.cc
++++ b/gpu/ipc/service/gpu_init_2.cc
+@@ -901,8 +901,13 @@
+   gpu_init_internal::MaybeDisableWebGPUOnVulkanViaGLInterop(gpu_feature_info_);
+ #endif  // BUILDFLAG(IS_OZONE)
+ 
++  // Lumo: respect an explicit Vulkan opt-out (`--disable-features=Vulkan`).
++  // Without this, the WebGPU-on-Vulkan interop feature force-enables a native
++  // Vulkan instance even when the browser was told not to, which fails on
++  // drivers that lack EGL_EXT_device_query (e.g. Adreno on Android 11).
+   if (gpu_feature_info_.IsFeatureEnabled(
+-          GPU_FEATURE_TYPE_WEBGPU_ON_VK_VIA_GL_INTEROP)) {
++          GPU_FEATURE_TYPE_WEBGPU_ON_VK_VIA_GL_INTEROP) &&
++      features::IsUsingVulkan()) {
+     if (gpu_preferences_.use_vulkan == gpu::VulkanImplementationName::kNone) {
+       gpu_preferences_.use_vulkan = gpu::VulkanImplementationName::kNative;
+     }
+@@ -911,11 +916,12 @@
+ #endif  // BUILDFLAG(USE_WEBGPU_ON_VULKAN_VIA_GL_INTEROP)
+ 
+   bool try_vulkan_init =
+-      gpu_feature_info_.IsFeatureEnabled(GPU_FEATURE_TYPE_VULKAN) ||
+-      gpu_feature_info_.IsFeatureEnabled(
+-          GPU_FEATURE_TYPE_WEBGPU_ON_VK_VIA_GL_INTEROP) ||
+-      (gpu_feature_info_.IsFeatureEnabled(GPU_FEATURE_TYPE_SKIA_GRAPHITE) &&
+-       gpu_preferences_.gr_context_type == GrContextType::kGraphiteVulkan);
++      features::IsUsingVulkan() &&
++      (gpu_feature_info_.IsFeatureEnabled(GPU_FEATURE_TYPE_VULKAN) ||
++       gpu_feature_info_.IsFeatureEnabled(
++           GPU_FEATURE_TYPE_WEBGPU_ON_VK_VIA_GL_INTEROP) ||
++       (gpu_feature_info_.IsFeatureEnabled(GPU_FEATURE_TYPE_SKIA_GRAPHITE) &&
++        gpu_preferences_.gr_context_type == GrContextType::kGraphiteVulkan));
+ 
+   if (!try_vulkan_init || !InitializeVulkan()) {
+     DisableVulkanFeatures(gpu_feature_info_, gpu_preferences_);
