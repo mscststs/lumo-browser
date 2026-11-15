@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumo Probe Side Panel</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <h1>Side Panel 探针</h1>
+  <p class="hint">这个面板只验证一件事：side panel 的 DOM/JS 生命周期在 Android 上是否正常。</p>
+
+  <section class="card">
+    <h2>生命周期</h2>
+    <dl class="kv">
+      <dt>visibilityState</dt><dd id="k-visibility">—</dd>
+      <dt>document.hidden</dt><dd id="k-hidden">—</dd>
+      <dt>hasFocus()</dt><dd id="k-focus">—</dd>
+      <dt>打开时间</dt><dd id="k-opened">—</dd>
+      <dt>visibility 变化</dt><dd id="k-changes">0</dd>
+      <dt>runtime.id</dt><dd id="k-id">—</dd>
+    </dl>
+  </section>
+
+  <div class="row">
+    <button type="button" class="primary" id="btn-ping">Ping 当前标签页 content script</button>
+    <button type="button" id="btn-run">跑一次探针</button>
+  </div>
+
+  <section class="card">
+    <h2>Ping 结果</h2>
+    <pre id="ping-out">尚未发送</pre>
+  </section>
+
+  <section class="card">
+    <h2>探针统计</h2>
+    <pre id="probe-out">尚未运行</pre>
+  </section>
+
+  <footer id="footer">sidepanel.html · 无网络请求</footer>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

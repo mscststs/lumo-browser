@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "Lumo MV3 Probe",
+  "description": "Capability probe for MV3 extension APIs on Android Chromium (Lumo Browser).",
+  "version": "0.1.0",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "tabs",
+    "scripting",
+    "sidePanel",
+    "webNavigation",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "cookies",
+    "downloads",
+    "notifications",
+    "alarms",
+    "contextMenus",
+    "userScripts",
+    "clipboardWrite",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "sw.js"
+  },
+  "action": {
+    "default_title": "Lumo MV3 Probe",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/probe-128.png"
+    }
+  },
+  "icons": {
+    "128": "icons/probe-128.png"
+  },
+  "options_ui": {
+    "page": "probe.html",
+    "open_in_tab": true
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumo Probe Test Page</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <h1>Content script / DNR 测试页</h1>
+  <p class="hint">
+    这个页面必须通过 <code>http(s)://</code> 打开（例如 <code>python3 -m http.server</code> 后从手机访问），
+    content script 才会注入；<code>file://</code> 需要额外开启「允许访问文件网址」。
+  </p>
+
+  <section class="card">
+    <h2>1. content script 标记</h2>
+    <dl class="kv">
+      <dt>window.__lumoProbe</dt><dd id="k-world">检测中…</dd>
+      <dt>DOM data-lumo-probe</dt><dd id="k-dom">检测中…</dd>
+      <dt>页面世界可见性</dt><dd id="k-expect">预期：window 标记不可见、DOM 标记可见</dd>
+    </dl>
+    <div class="row" style="margin-top:10px">
+      <button type="button" id="btn-bridge">页面 → content script 往返</button>
+    </div>
+    <pre id="bridge-out">尚未发送</pre>
+  </section>
+
+  <section class="card">
+    <h2>2. DNR block（fetch）</h2>
+    <p class="hint">
+      目标 <code>https://example.com/blocked-by-dnr</code>。命中规则
+      <code>id=9101</code> 时请求被 block。注意：未命中时也会因 CORS 失败，
+      所以 fetch 只能作为辅助证据，主证据用下面的「导航探测」。
+    </p>
+    <div class="row">
+      <button type="button" id="btn-fetch">fetch 一次</button>
+      <button type="button" id="btn-dnr">导航探测（webNavigation.onErrorOccurred）</button>
+    </div>
+    <pre id="dnr-out">尚未测试</pre>
+  </section>
+
+  <section class="card">
+    <h2>3. 直接导航（人工观察）</h2>
+    <p class="hint">
+      点击后应得到 <code>ERR_BLOCKED_BY_CLIENT</code>；若页面正常加载说明 DNR 未生效。
+      （用按钮而不是链接，保证扩展页面/本页不出现任何外链资源。）
+    </p>
+    <div class="row">
+      <button type="button" id="btn-navigate">导航到 https://example.com/blocked-by-dnr</button>
+    </div>
+  </section>
+
+  <footer id="footer">testpage.html · 仅用于探针验证</footer>
+
+  <script src="testpage.js"></script>
+</body>
+</html>

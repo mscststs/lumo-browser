@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumo MV3 Probe</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <header>
+    <h1>Lumo MV3 Probe</h1>
+    <div class="meta" id="manifest-line">manifest: 读取中…</div>
+    <div class="meta" id="ua-line">UA: 读取中…</div>
+    <div class="meta" id="summary-line">— pass / — fail</div>
+    <div class="meta" id="run-line">最近运行: —</div>
+  </header>
+
+  <section class="stats" aria-label="统计">
+    <div class="stat pass">
+      <span class="value" id="stat-pass">–</span>
+      <span class="label">pass</span>
+    </div>
+    <div class="stat fail">
+      <span class="value" id="stat-fail">–</span>
+      <span class="label">fail</span>
+    </div>
+    <div class="stat">
+      <span class="value" id="stat-total">–</span>
+      <span class="label">total</span>
+    </div>
+    <div class="stat">
+      <span class="value" id="stat-ms">–</span>
+      <span class="label">ms</span>
+    </div>
+  </section>
+
+  <div class="row">
+    <button type="button" class="primary" id="btn-run">重新运行</button>
+    <button type="button" id="btn-export">导出 JSON</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">api</th>
+          <th scope="col">ok</th>
+          <th scope="col">detail</th>
+          <th scope="col">error</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="4" class="empty">还没有探针结果。点击「重新运行」。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="card" aria-label="content script 状态">
+    <h2>content script 最近一次 content:ready</h2>
+    <div id="content-last" class="meta">—</div>
+  </section>
+
+  <footer id="footer">probe extension v0.1.0 · 本页不发起网络请求</footer>
+
+  <script src="probe.js"></script>
+</body>
+</html>

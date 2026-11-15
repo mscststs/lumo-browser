@@ -1,0 +1,6 @@
+artifacts/
+*.apk
+*.aab
+*.log
+.DS_Store
+node_modules/

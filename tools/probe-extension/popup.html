@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumo Probe</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <h1>Lumo MV3 Probe</h1>
+  <div class="meta" id="manifest-line">—</div>
+
+  <section class="stats">
+    <div class="stat pass">
+      <span class="value" id="stat-pass">–</span>
+      <span class="label">pass</span>
+    </div>
+    <div class="stat fail">
+      <span class="value" id="stat-fail">–</span>
+      <span class="label">fail</span>
+    </div>
+  </section>
+
+  <div class="row">
+    <button type="button" class="primary" id="btn-run">重新运行</button>
+    <button type="button" id="btn-open">打开探针面板</button>
+  </div>
+
+  <p class="hint" id="hint">点击 toolbar 图标查看统计；详情在 options 页（probe.html）。</p>
+
+  <script src="popup.js"></script>
+</body>
+</html>

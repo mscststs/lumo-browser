@@ -1,0 +1,135 @@
+{
+  "version": "1.0.0",
+  "description": "Lumo Browser MV3 验收清单（机器可读）。每一项对应 tools/probe-extension 的探针输出或 adb/截图证据；weight 合计 100。",
+  "total_weight": 100,
+  "pass_threshold": 90,
+  "evidence_dir": "artifacts/verify/<run-id>/",
+  "items": [
+    {
+      "id": "ext_installed",
+      "title": "探针扩展已安装并处于 enabled 状态，无 manifest 阻断错误",
+      "weight": 6,
+      "how": "chrome://extensions 截图（artifacts/verify/<run-id>/extensions.png）显示 \"Lumo MV3 Probe\" 已启用且无红色错误徽章；adb logcat -d | grep -Ei 'extension.*(error|fail)' 无致命项。"
+    },
+    {
+      "id": "sw_running",
+      "title": "MV3 service worker 能启动并完成一次探针",
+      "weight": 6,
+      "how": "探针 JSON artifacts/verify/<run-id>/probe-result.json 中 meta.runAt 存在且 results 非空；同时 logcat 可见该扩展 SW 的启动日志。"
+    },
+    {
+      "id": "storage_rw",
+      "title": "chrome.storage.local / session / sync 读写可用",
+      "weight": 5,
+      "how": "probe-result.json 中 api 为 \"storage.local set+get\"、\"storage.session set+get\"、\"storage.sync set+get\" 的三项 ok=true（detail 含 set+get ok）。任一 ok=false 记录其 error 作为缺口。"
+    },
+    {
+      "id": "alarms",
+      "title": "chrome.alarms 可创建、枚举并清除",
+      "weight": 4,
+      "how": "probe-result.json 中 \"alarms.create+getAll\" ok=true 且 detail 含 create+getAll+clear ok。"
+    },
+    {
+      "id": "notifications",
+      "title": "chrome.notifications 权限为 granted，可 create + clear",
+      "weight": 5,
+      "how": "probe-result.json 中 \"notifications.create\" ok=true（detail 含 permission=granted）；并在真机通知栏截图确认出现后消失（artifacts/verify/<run-id>/notification.png）。"
+    },
+    {
+      "id": "tabs_query",
+      "title": "chrome.tabs.query 能读到活动标签页的 url/title/status",
+      "weight": 5,
+      "how": "probe-result.json 中 \"tabs.query(active)\" ok=true，detail 里 url 为真实 http(s) 地址而非 about:blank。"
+    },
+    {
+      "id": "scripting_execute",
+      "title": "chrome.scripting.executeScript 能向活动页注入并取回结果",
+      "weight": 6,
+      "how": "probe-result.json 中 \"scripting.executeScript\" ok=true，detail 含 title= 且 isolatedMarker=true（说明与 content script 共享隔离世界）。需在 http(s) 页面为前台时运行。"
+    },
+    {
+      "id": "content_script_isolated",
+      "title": "content script 以 document_start 注入隔离世界，页面世界不可见 window 标记",
+      "weight": 5,
+      "how": "testpage 上 window.__lumoProbe 显示不可见、data-lumo-probe 显示 isolated（testpage 截图）；probe.html 的 content:ready 时间戳更新；probe-result.json 的 scripting 项 isolatedMarker=true。"
+    },
+    {
+      "id": "runtime_messaging",
+      "title": "runtime 消息往返可用（panel/popup → SW，页面 → content → SW）",
+      "weight": 5,
+      "how": "probe.html 点「重新运行」后统计刷新（trigger=message）；testpage「页面 → content script 往返」返回 {pong:true, world:'isolated'}；sidepanel ping 返回同样结构。截图 + probe-result.json。"
+    },
+    {
+      "id": "dnr_dynamic_rules",
+      "title": "declarativeNetRequest 动态规则可 add / 读取 / remove",
+      "weight": 5,
+      "how": "probe-result.json 中 \"declarativeNetRequest.dynamicRules\" ok=true（detail 含 add+get+remove ok）；logcat 无 DNR rule 校验错误。"
+    },
+    {
+      "id": "dnr_block_effective",
+      "title": "DNR block 规则真实生效（请求被 ERR_BLOCKED_BY_CLIENT 拦截）",
+      "weight": 5,
+      "how": "testpage「导航探测」输出 {blocked:true, error:'net::ERR_BLOCKED_BY_CLIENT'}；或 chrome://net-export / logcat 中该 URL 出现 ERR_BLOCKED_BY_CLIENT。仅 fetch 失败不算证据。"
+    },
+    {
+      "id": "cookies",
+      "title": "chrome.cookies.getAll 可枚举 cookie",
+      "weight": 4,
+      "how": "probe-result.json 中 \"cookies.getAll\" ok=true 且 detail 含 n=<数量>；在有登录态站点上运行时 n>0 更有说服力。"
+    },
+    {
+      "id": "webnavigation_events",
+      "title": "chrome.webNavigation 的 onCommitted/onErrorOccurred 事件真的回调",
+      "weight": 4,
+      "how": "probe-result.json 中 \"webNavigation.events\" ok=true，且 detail 的 committed 计数随浏览行为增长（导航两次后重跑探针对比）；导航探测返回 ERR_BLOCKED_BY_CLIENT 也证明 onErrorOccurred 回调。"
+    },
+    {
+      "id": "contextmenus",
+      "title": "chrome.contextMenus.create 成功，菜单项在长按菜单可见",
+      "weight": 3,
+      "how": "probe-result.json 中 \"contextMenus.create\" ok=true；在网页上长按出现「Lumo Probe」菜单项（artifacts/verify/<run-id>/contextmenu.png）。"
+    },
+    {
+      "id": "action_badge",
+      "title": "chrome.action 可设置徽标文字与图标",
+      "weight": 3,
+      "how": "探针跑完后 toolbar 图标徽标显示 pass/fail 数字（fail=0 时显示 OK），截图 artifacts/verify/<run-id>/action-badge.png；probe-result.json 的 action 项 ok=true。"
+    },
+    {
+      "id": "user_scripts_api",
+      "title": "chrome.userScripts 可用（getScripts 与 register 均成功）",
+      "weight": 5,
+      "how": "probe-result.json 中 \"userScripts.getScripts\" 与 \"userScripts.register\" 均 ok=true。若失败，记录 error（常见为 \"userScripts API is not available\"，需用户开关/developer mode）；这是 ../lumo-userscript-manager 的硬依赖。"
+    },
+    {
+      "id": "side_panel_open",
+      "title": "side panel 能被打开并加载 sidepanel.html",
+      "weight": 6,
+      "how": "从扩展菜单/工具栏打开侧栏，截图出现 \"Side Panel 探针\" 标题（artifacts/verify/<run-id>/sidepanel.png）；probe-result.json 的 sidePanel 项 ok=true（setOptions 生效）。"
+    },
+    {
+      "id": "side_panel_interactive",
+      "title": "side panel 的 DOM/JS 生命周期正常且可交互",
+      "weight": 6,
+      "how": "侧栏内 visibilityState 显示 visible、点「Ping 当前标签页 content script」返回 {pong:true}；截图 + 返回 JSON 贴入 probe-result.json 同目录的 sidepanel-ping.json。"
+    },
+    {
+      "id": "options_page",
+      "title": "options_ui.page（probe.html）能打开，表格渲染且按钮可用",
+      "weight": 4,
+      "how": "chrome://extensions → 详情 → 扩展选项，截图显示统计与 24 行探针表格（artifacts/verify/<run-id>/options.png）；或 adb 打开 chrome-extension://<id>/probe.html。"
+    },
+    {
+      "id": "popup_page",
+      "title": "action popup（popup.html）能打开且尺寸正常",
+      "weight": 4,
+      "how": "点击 toolbar 图标截图（artifacts/verify/<run-id>/popup.png），可见 pass/fail 数字与两个按钮，无空白/溢出。"
+    },
+    {
+      "id": "service_worker_wakeup",
+      "title": "SW 被终止后能按事件唤醒并重跑探针",
+      "weight": 4,
+      "how": "记录 meta.runAt1 → 等待 30s 让 SW 空闲终止（chrome://serviceworker-internals 或 logcat stop）→ 从 probe.html 点「重新运行」→ meta.runAt2 > meta.runAt1 且 bootCount 增长；logcat 可见 SW 重新启动。"
+    }
+  ]
+}
