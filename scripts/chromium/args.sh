@@ -49,6 +49,4 @@ if [[ "$EXT_CORE" == "true" ]]; then
   echo 'enable_desktop_android_extensions = true'
 fi
 
-if [[ "$DESKTOP_ANDROID" == "true" ]]; then
-  echo 'use_login_database_as_backend = true'
-fi
+

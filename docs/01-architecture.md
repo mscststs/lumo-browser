@@ -64,13 +64,29 @@ adb shell am set-debug-app --persistent dev.lumo.browser
 
 ## 5. 构建流水线（不依赖 googlesource git）
 
+实际可用的流水线（每一步都在本机跑通）：
+
 ```
-scripts/chromium/fetch.sh     # 有 git 可用时：fetch --nohistory android
-scripts/chromium/extract.sh   # 本机现实路径：GCS tarball → ~/chromium/src + 最小 .gclient(managed=False)
-scripts/chromium/hooks.sh     # gclient runhooks（CIPD 工具链：clang/ndk/sysroot/ninja）
-scripts/chromium/apply-patches.sh
-scripts/chromium/build.sh a   # is_desktop_android=true（Titanium 同形，移动 UI + 扩展核心）
+scripts/chromium/extract.sh        # GCS 官方 tarball(5.39GB) → ~/chromium/src（无 git）
+scripts/chromium/cipd-deps.sh      # 从 DEPS 生成 CIPD 表并安装（NDK/SDK/JDK/androidx/build-tools…）
+scripts/chromium/fetch-dep.sh      # 缺失的 git 依赖：googlesource +archive（单依赖，秒级）
+scripts/chromium/fetch-tree.sh     # 缺失的仓库子目录：+archive/<tag>/<subdir>.tar.gz
+scripts/chromium/toolchain.sh      # clang(GCS) + LASTCHANGE + gclient_args.gni 修正
+scripts/chromium/apply-patches.sh  # patches/ 顺序应用
+scripts/chromium/build.sh a        # gn gen + autoninja(siso) + 归档 APK
 ```
+
+踩过的坑（都在脚本里固化了）：
+
+| 坑 | 现象 | 解法 |
+|---|---|---|
+| `gclient sync` 不可用 | `git ls-remote` 对 chromium/src 永不返回（约 100 万 ref） | 改用 GCS tarball |
+| tarball 缺少 CIPD 依赖 | NDK/JDK/`androidx`/build-tools 缺失 | `cipd-deps.sh`（表由 `tools/gen_cipd_table.py` 从 DEPS 生成） |
+| CIPD 包内容自带路径前缀 | 例如 SDK 包装到 `public/platforms/android-37.2/...` | 安装根 = DEPS key；androidx/android_deps 另有 `cipd/`+`committed` 布局修正 |
+| `gclient runhooks` 需要每个依赖都有 `.git` | `git diff` 在 `third_party/angle` 失败 | 用 `toolchain.sh` 代替 runhooks |
+| `gclient_args.gni` 由 sync 生成 | tarball 里 `checkout_android=false` → gn 断言失败 | `toolchain.sh` 改写 |
+| CIPD DNS 污染 | `chrome-infra-packages.appspot.com` 解析到伪造 IPv6 | 走代理 `LUMO_PROXY=...` |
+| `--load-extension` 重复 flag | 只生效最后一个 | 逗号分隔 |
 
 为什么默认 `a`（`is_desktop_android=true`）：真机证据 §3.1 表明它产出的是 **Chrome Android 移动 UI**，同时启用 `enable_extensions_core` 全套（含 windowing/side_panel）。配置 `b` 只是在需要"严格非 desktop-android"时才用。
 

@@ -24,7 +24,7 @@ def load_deps(src_root):
     env = {'Var': _Var, 'Str': _Str, 'vars': {}}
     deps = {}
     # Two passes: vars first (DEPS uses `vars['x']` and Var('x')).
-    ns = {}
+    ns = {'Var': _Var, 'Str': _Str}
     exec(compile(open(path).read(), path, 'exec'), ns)
     for key in ('deps', 'deps_os'):
         block = ns.get(key) or {}
@@ -62,6 +62,7 @@ def main():
         print(f'{rel}: unpinned url {url}', file=sys.stderr)
         return 1
     base, rev = url.rsplit('@', 1)
+    base = base.replace('chromium_git', 'https://chromium.googlesource.com', 1)
     print(base, rev)
     return 0
 
