@@ -1,62 +1,58 @@
-# 当前状态（2026-11-16 03:25 设备时间）
+# 当前状态（2026-11-16 · 最终验收）
 
-产品名：**Lumo**　包名：`dev.lumo.browser`　内核：Chromium 160.0.8157.0（official，arm64）
+产品名 **Lumo**　包名 `dev.lumo.browser`　内核 Chromium **160.0.8157.0**（official，arm64）
 
-## 已实现并验证
+## 验收（全新安装后重跑，非增量状态）
 
-| 能力 | 状态 | 证据 |
+| 项 | 结果 | 证据 |
 |---|---|---|
-| 自构建 APK | ✅ 344MB | `artifacts/apk/lumo-a-*.apk` |
-| 品牌化 | ✅ 应用名 Lumo / 包名 dev.lumo.browser / 图标 | `scripts/chromium/brand.sh` |
-| GPU | ✅ ES2 回退运行（Adreno/ANGLE ES3 失败不再崩） | `patches/0006` |
-| 扩展装载 | ✅ 上游 debug-app 握手（`/data/local/tmp` + `am set-debug-app`） | `scripts/device/ext-install.sh` |
-| 三个扩展 + 探针 | ✅ Lumo 1.0.27 / Lumo MV3 Probe / Lumo 用户脚本管理器 | `chrome://extensions` |
-| Service Worker | ✅ 均在运行 | 扩展页「检查视图」 |
-| **手机 side panel = 可拖拽 Bottom Sheet** | ✅ peek(64dp) / 收起(45%) / 展开(75%)，页面始终可见可交互，面板不销毁 | `artifacts/verify/sheet2-*.png` |
-| **平板/宽屏 side panel = 桌面式并排 + 可拖拽宽度** | ✅ 右侧 540px，页宽不受影响；拖动分隔条调整 | `artifacts/verify/tablet-panel.png` |
-| 扩展 popup（工具栏气泡） | ✅ 用户脚本管理器的 popup 正常显示 | `artifacts/verify/us-popup2.png` |
-| `chrome.userScripts` | ✅ 默认开放（可关），注册 + 真实执行成功 | `artifacts/verify/userscript-proof.png`（页面出现 `LUMO_USERSCRIPT_OK`） |
-| `scripting.executeScript` | ✅ 隔离世界注入并返回 | 探针 `isolatedMarker: true` |
-| MV3 探针 | ✅ **30/30**（`docs/07-capability-matrix.md`） | `PROBE_JSON` |
-| Lumo AI 端到端 | ✅ 侧栏 → provider → 流式回复（本地 mock OpenAI） | `scripts/verify/lumo-e2e.sh`、`artifacts/verify/lumo-e2e-*` |
-| 关闭侧栏不崩溃 | ✅ 连续 3 次开/关，进程存活（`patches/0011`） | `closecycle-*`、`summary.txt` 的 `close_panel=ok` |
-| `chrome://extensions` 管理页 | ✅ 开发者模式 / 加载未打包 / 打包 / 更新 | 截图 |
+| APK 安装启动（卸载后重装） | ✅ | `artifacts/apk/lumo-a-20261116-1254.apk` |
+| MV3 探针 | ✅ **30/30** | `artifacts/verify/20261116-130705/probe.json` |
+| 扩展加载 + Service Worker | ✅ 3/3 | `extensions-strings.txt`（三个 `Service Worker`） |
+| Lumo 侧栏 AI 端到端 | ✅ provider → 流式回复（mock OpenAI） | `artifacts/verify/lumo-e2e-20261116-130954/screen-lumo-e2e.png` |
+| 用户脚本管理器 popup | ✅ 显示当前站点脚本状态 | `artifacts/verify/final-us-popup.png` |
+| 用户脚本注册与执行 | ✅ 页面渲染 `LUMO_USERSCRIPT_OK` | `userscript-proof.png` |
+| 手机侧栏 = 可拖拽底部抽屉 | ✅ peek/收起/展开；页面可见可交互 | `sheet2-*.png`、`rot6-d-narrow-open.png` |
+| 平板/宽屏 = 并排 + 可调宽 | ✅ 618px 侧栏，页面不遮挡 | `rot5-b-wide.png`、`rot6-c-wide-open.png` |
+| 关闭侧栏不崩溃 | ✅ 连续开关 + 自动回归 | `close-panel.txt` = `close_panel=ok` |
+| 验收硬门槛 | ✅ `GATE=OK` | `summary.txt` |
 
-## 关键补丁
+## 构建流水线
 
-| 补丁 | 内容 |
+```
+scripts/chromium/extract.sh      GCS tarball → ~/chromium/src（无 git 依赖）
+scripts/chromium/cipd-deps.sh    NDK/SDK/JDK/androidx/build-tools（表由 DEPS 生成）
+scripts/chromium/fetch-dep.sh    googlesource +archive 补齐缺失的 git 依赖
+scripts/chromium/fetch-tree.sh   仓库子目录（+archive/<tag>/<path>.tar.gz）
+scripts/chromium/toolchain.sh    clang + LASTCHANGE + gclient_args.gni
+scripts/chromium/build.sh a      补丁 → 品牌化 → gn → siso → artifacts/apk/
+```
+
+## 补丁（8 个）
+
+| 补丁 | 作用 |
 |---|---|
-
 | 0002 | 手机扩展工具栏（容器 + ToolbarPhone 接收 coordinator + 去掉 tablet 强转） |
-| 0003 | 默认启用 Android side panel（含手动改宽 feature） |
+| 0003 | 启用 Android side panel（+手动改宽），verbose 日志保持关闭 |
 | 0005 | 尊重 `--disable-features=Vulkan` |
-| 0006 | GPU 信息收集允许 ES2 回退 |
-| 0008 | `userScripts` 改为默认允许（可关闭） |
-| 0009 | popup 无内联按钮时回退到扩展容器作为锚点 |
-| 0010 | **side panel 双形态**：窄屏 Bottom Sheet（拖拽/peek），宽屏并排可调宽；跨 600dp 断点自动关闭面板，重开即用新形态 |
-| 0011 | 关闭侧栏时的容器 detach 修复（不再闪退）；隐藏侧栏 UI 时同步隐藏底部抽屉 |
+| 0006 | GPU 信息收集允许 ES2 回退（老 Adreno 驱动不再整浏览器崩溃） |
+| 0008 | `chrome.userScripts` 默认允许（详情页可关） |
+| 0009 | popup 无内联按钮时回退到扩展容器锚点 |
+| 0010 | side panel 双形态（底部抽屉 / 并排可调宽），断点切换安全关闭 |
+| 0011 | 关闭/隐藏侧栏的容器 detach 修复（不再闪退） |
 
-## 验收命令与证据
-
-```bash
-scripts/device/verify.sh
-# → artifacts/verify/<run>/screen-02-extensions.png（三个扩展 + Service Worker 状态）
-# → probe.json（22/24）
-# → screen-03-sidepanel.png（手机底部抽屉打开 Lumo 侧栏）
-```
-
-宽屏验证方法与证据：
+## 验证命令
 
 ```bash
-adb shell wm size 2160x1600; adb shell wm density 240   # 模拟平板（1440dp 宽）
-# 打开扩展菜单 → Lumo → 右侧并排面板 + 可拖拽分隔条
-adb shell wm size reset; adb shell wm density reset
+scripts/device/verify.sh          # 30 项探针 + 扩展/SW + 侧栏 + 关闭回归 + GATE
+scripts/verify/lumo-e2e.sh        # Lumo 侧栏 + mock OpenAI 流式回复
+tools/cdp.py list|eval|type       # CDP（--remote-debugging-port=9222）
+bash tools/verify/check-static.sh # 探针扩展静态检查 + SW 冒烟
 ```
-截图：`artifacts/verify/tablet-panel.png`
 
-## 下一步
+## 已知限制
 
-1. Lumo 侧栏接入真实模型后的端到端验证（需用户提供 provider key）。
-2. 工具栏 action 图标的固定/排序体验打磨。
-3. 设置页增加「允许用户脚本」开关（当前默认开）。
-4. 发布流水线（签名、更新、Play/侧载策略）。
+- 跨 600dp 断点（旋转/桌面模式改尺寸）会关闭侧栏，重新打开按新形态呈现。
+- 手机工具栏暂未内联固定动作图标（动作走扩展菜单；popup 已正常）。
+- Lumo 的 AI 需要用户自己的 provider key（端到端用本地 mock 证明链路）。
+- `nativeMessaging` / `desktopCapture` / `devtools.*` 面板为平台限制，未纳入承诺。
