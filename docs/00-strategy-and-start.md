@@ -139,8 +139,8 @@
 
 | # | 缺口 | 上游现状（已核） | 我们的做法 | 优先级 |
 |---|---|---|---|---|
-| 1 | 手机工具栏无扩展承载点 | tablet 有 stub 容器 + `ExtensionsToolbarCoordinator` 接线；phone 无 | 在 `toolbar_phone.xml` 加 `extensions_toolbar_container_stub`，在 `ToolbarPhone` 接线（照 tablet 的 width-consumer 模式），不要动 canvas | P0 |
-| 2 | 竖屏 side panel 呈现 | bridge/contents/coordinator 已有 | 竖屏走 bottom sheet 高度分档 + 手势；`open()` 需用户手势的判定交给我们自己的 gesture 层 | P0 |
+| 1 | 手机工具栏无扩展承载点 | tablet 有 stub 容器 + `ExtensionsToolbarCoordinator` 接线；phone 无 | **已实现**（`patches/0002`）：`toolbar_phone.xml` 加容器 + `ToolbarPhone` 接收 coordinator + 去掉 tablet 强转。仍缺 width consumer（见 docs/08 残留风险 M1） | ✅ |
+| 2 | 竖屏 side panel 呈现 | bridge/contents/coordinator 已有 | **已实现**（`patches/0010`）：底部抽屉 peek/收起/展开 + 拖拽；宽屏并排可调宽 | ✅ |
 | 3 | `chrome://extensions` 移动视口 | 桌面 WebUI | 视口 + 卡片/字段宽度 + `touch-action` 的 CSS/布局补丁（Titanium 的做法可作参考，代码自写） | P1 |
 | 4 | 安装入口 | `ExtensionInstallDialogBridge`、`ExtensionInstallPrompt` 已有；无 CWS 手机入口 | 侧载（SAF 选 zip/文件夹）+ 商店 URL 安装；评估 CWS 的 UA 依赖 | P1 |
 | 5 | MV2 策略 | `g_allow_mv2_for_testing` 型测试开关 | **产品决策**：只有明确需要才开，且要写进隐私/安全说明；默认不开 | P1（决策） |

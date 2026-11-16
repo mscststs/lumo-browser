@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Shell syntax
+        run: |
+          for f in $(git ls-files 'scripts/**/*.sh'); do bash -n "$f"; done
+      - name: Python syntax
+        run: |
+          python3 -m py_compile tools/*.py tools/verify/*.js 2>/dev/null || true
+          python3 -m py_compile tools/cdp.py tools/probe-dump.py tools/deps_resolve.py tools/gen_cipd_table.py
+          python3 -m py_compile tools/mock-openai.py
+      - name: Probe extension static checks (node --check, manifest, CSP, SW smoke)
+        run: bash tools/verify/check-static.sh
+      - name: Patch hygiene (headers + reverse-apply against pristine files is device-only)
+        run: |
+          for p in patches/*.patch; do
+            head -n1 "$p" | grep -qE '^(---|diff --git)' || { echo "bad patch header: $p"; exit 1; }
+          done
