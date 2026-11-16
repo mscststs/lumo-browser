@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lumo launcher icon - monochrome layer (Android 13+ themed icons).
+
+  Moon + two wave crests, matching branding/app-icon-*.svg. Authored in the
+  90 dp viewport Chrome uses for themed_app_icon, where the visible 72 dp box
+  maps to 27..63 (the 108-grid design scaled by 0.5).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="90dp"
+    android:height="90dp"
+    android:viewportWidth="90"
+    android:viewportHeight="90">
+
+    <!-- moon, top-right -->
+    <path
+        android:pathData="M53.5,31 A5,5 0 1,0 53.5,41 A5,5 0 1,0 53.5,31 Z"
+        android:fillColor="#000000"/>
+
+    <!-- wave crests -->
+    <path
+        android:pathData="M27,52 Q32,49.6 37,52 T47,52 T57,52 T63,52"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M27,56 Q32,53.6 37,56 T47,56 T57,56 T63,56"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#000000"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"/>
+</vector>

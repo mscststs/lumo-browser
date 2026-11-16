@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
+  <!--
+    Lumo launcher icon - adaptive foreground layer (transparent).
+
+    The moon, top-right, with a soft warm halo. Distance from the icon centre
+    stays inside the 36-radius circle so a circular launcher mask never clips
+    it: centre (71,36) is 24.8 from (54,54), plus r 10 = 34.8.
+  -->
+  <defs>
+    <radialGradient id="halo" cx="71" cy="36" r="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF4D8" stop-opacity="0.42"/>
+      <stop offset="0.5" stop-color="#F3E4B8" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#F3E4B8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="51" y="16" width="39" height="40" fill="url(#halo)"/>
+  <circle cx="71" cy="36" r="10" fill="#F8EFD8"/>
+</svg>

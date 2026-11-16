@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
+  <!--
+    Lumo launcher icon - adaptive background layer.
+
+    Night sky + sea, deliberately minimal: a low-contrast gradient
+    (#1B2444 -> #2A355F) and two bold wave bands with moonlight crests.
+    Full bleed - the launcher mask crops it, so the waves run off the edge.
+  -->
+  <defs>
+    <linearGradient id="sky" x1="12" y1="6" x2="98" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1B2444"/>
+      <stop offset="1" stop-color="#2A355F"/>
+    </linearGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#sky)"/>
+
+  <path d="M-4 68 Q6 63 16 68 T36 68 T56 68 T76 68 T96 68 T116 68 V112 H-4 Z" fill="#2A4C6E"/>
+  <path d="M-4 76 Q6 71 16 76 T36 76 T56 76 T76 76 T96 76 T116 76 V112 H-4 Z" fill="#376397"/>
+
+  <!-- moonlight crests -->
+  <path d="M-4 68 Q6 63 16 68 T36 68 T56 68 T76 68 T96 68 T116 68" fill="none"
+        stroke="#8FB3D8" stroke-opacity="0.5" stroke-width="1"/>
+  <path d="M-4 76 Q6 71 16 76 T36 76 T56 76 T76 76 T96 76 T116 76" fill="none"
+        stroke="#A6C4E4" stroke-opacity="0.4" stroke-width="0.9"/>
+</svg>

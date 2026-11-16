@@ -73,8 +73,14 @@ scripts/chromium/fetch-dep.sh      # 缺失的 git 依赖：googlesource +archiv
 scripts/chromium/fetch-tree.sh     # 缺失的仓库子目录：+archive/<tag>/<subdir>.tar.gz
 scripts/chromium/toolchain.sh      # clang(GCS) + LASTCHANGE + gclient_args.gni 修正
 scripts/chromium/apply-patches.sh  # patches/ 顺序应用
+scripts/chromium/brand.sh          # 品牌名 + branding/*.svg → 自适应图标三层（前景/背景/单色）
 scripts/chromium/build.sh a        # gn gen + autoninja(siso) + 归档 APK
 ```
+
+图标不是缩放一张 PNG：`branding/app-icon-{background,foreground}.svg` 画在 108dp 网格上，
+`render-icons.py` 按 Android 安全区（正中 72dp）+ 各密度尺寸渲染，并校验前景不越界；
+legacy 图标（API<26）由同一场景裁剪后烘焙超椭圆圆角。细节见
+`scripts/chromium/branding/README.md`。
 
 踩过的坑（都在脚本里固化了）：
 
