@@ -52,8 +52,15 @@ ui_dump "$OUT/ui-01-home.xml"
 step "extensions page"
 if open_extensions_page; then
   sleep 4
-  tap_switch_near "开发者模式" || tap_text "开发者模式" || tap_text "Developer mode" || true
-  sleep 2
+  # Only toggle developer mode on if it is currently off (otherwise we would turn it off).
+  DEV_MODE="$(python3 "$REPO_ROOT/tools/cdp.py" eval --target "chrome://extensions" --await \
+      --expr '(async()=>{const c=await chrome.developerPrivate.getProfileConfiguration();return String(c.inDeveloperMode)})()' 2>/dev/null || echo unknown)"
+  if [[ "$DEV_MODE" == "true" ]]; then
+    log "developer mode already on"
+  else
+    tap_switch_near "开发者模式" || tap_text "开发者模式" || tap_text "Developer mode" || true
+    sleep 2
+  fi
   shot "$OUT/screen-02-extensions.png"
   ui_dump "$OUT/ui-02-extensions.xml"
   grep -o 'text="[^"]*"' "$OUT/ui-02-extensions.xml" | sed 's/text="//;s/"$//' | grep -v '^$' \
@@ -65,6 +72,10 @@ fi
 # leave chrome://extensions and open a real page before testing the side panel
 open_url "https://example.com/"
 sleep 6
+
+# 4b) side panel: ensure any previously-open panel is closed, then open it again.
+tap_text "关闭" >/dev/null 2>&1 || true
+sleep 1
 
 # 4b) side panel: tap the probe extension's action from the extensions menu and
 # check whether a panel surface appears (bottom sheet). This is the v0.1 product
@@ -96,10 +107,10 @@ if tap_text "关闭" || tap_text "Close"; then
   PIDS_AFTER="$(D shell pidof "$PRODUCT_PKG" | tr -d '\r')"
   if [[ -n "$PIDS_AFTER" ]]; then
     log "browser alive after closing the panel (pid $PIDS_AFTER)"
-    echo "close_panel=ok pid=$PIDS_AFTER" >> "$OUT/summary.txt"
+    echo "close_panel=ok pid=$PIDS_AFTER" > "$OUT/close-panel.txt"
   else
     warn "browser died when closing the side panel"
-    echo "close_panel=CRASH (pid before=$PIDS_BEFORE)" >> "$OUT/summary.txt"
+    echo "close_panel=CRASH (pid before=$PIDS_BEFORE)" > "$OUT/close-panel.txt"
   fi
   shot "$OUT/screen-04-panel-closed.png"
 else
@@ -136,6 +147,8 @@ PY
   grep -iE "lumo|probe|userscript" "$OUT/extensions-strings.txt" 2>/dev/null || echo "(none)"
   echo "--- sw state:"
   grep -iE "Service Worker" "$OUT/extensions-strings.txt" 2>/dev/null || true
+  echo "--- close panel:"
+  cat "$OUT/close-panel.txt" 2>/dev/null || echo "(not run)"
 } | tee "$OUT/summary.txt"
 
 step "done"

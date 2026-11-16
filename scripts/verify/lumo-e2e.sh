@@ -28,6 +28,7 @@ curl -sf "http://127.0.0.1:$PORT/health" >/dev/null || die "mock provider not re
 step "adb wiring"
 D reverse "tcp:$PORT" "tcp:$PORT" >/dev/null
 D reverse tcp:9222 tcp:9222 >/dev/null
+D forward tcp:9222 localabstract:chrome_devtools_remote >/dev/null
 log "adb reverse: $(D reverse --list | tr '\n' ' ')"
 
 step "open Lumo side panel"

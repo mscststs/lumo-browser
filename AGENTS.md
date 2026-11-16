@@ -31,7 +31,9 @@ scripts/chromium/apply-patches.sh         # 应用 patches/
 scripts/chromium/build.sh                 # gn gen + autoninja + 归档 APK
 scripts/device/install.sh                 # adb 安装（root pm install 绕过 MIUI 限制）
 scripts/device/ext-install.sh             # 装载 ../lumo 与 ../lumo-userscript-manager
-scripts/device/verify.sh                  # 跑 tools/verify 清单，产出证据目录
+scripts/device/verify.sh                  # 30 项 MV3 探针 + 扩展/侧栏/关闭回归，产出证据目录
+scripts/verify/lumo-e2e.sh                # Lumo 侧栏 + 本地 mock OpenAI 端到端验证
+tools/cdp.py list|eval|type               # CDP：查目标 / 在扩展上下文求值 / 输入
 ```
 
 ## 3. 构建配置
@@ -62,6 +64,8 @@ scripts/device/verify.sh                  # 跑 tools/verify 清单，产出证�
 - `chrome.userScripts` 注册成功（`../lumo-userscript-manager`）。
 - DNR 规则生效（block/allow/redirect 至少各一条）。
 - 扩展 popup / options 页面可打开且尺寸正常。
+- 手机侧栏为可拖拽底部抽屉（peek/收起/展开），关闭不崩溃；宽屏为并排 + 可调宽。
+- Lumo 侧栏能完成 provider 配置 → 流式回复（`scripts/verify/lumo-e2e.sh`）。
 
 任何一项失败 → 必须定位根因（logcat + `chrome://extensions` 错误 + 上游源码），修完重跑。
 
