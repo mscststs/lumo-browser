@@ -17,8 +17,10 @@ step "launch"
 if [[ -n "$FLAGS" ]]; then
   EXT_ROOT="/sdcard/Android/data/$PRODUCT_PKG/files/ext"
   CMDLINE="chrome --load-extension=$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager $FLAGS"
-  DR "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
-  D shell "printf '%s\n' '$CMDLINE' > /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
+  # Write as the shell user: /data/local/tmp is shell-writable, and going through `su -c`
+# mangles the embedded newline/quoting (flags ended up concatenated with "n").
+D shell "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
+  DR "am set-debug-app --persistent $PRODUCT_PKG" || true
 fi
 launch_browser
 wait_focus 60 || warn "browser not foreground"

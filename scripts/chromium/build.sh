@@ -39,8 +39,11 @@ step "ninja ($TARGET, jobs=$JOBS)"
 
 step "archive APK"
 mkdir -p "$APK_OUT"
-APK_PATH="$(ls -t "$CHROMIUM_SRC/$OUT_DIR"/apks/*.apk 2>/dev/null | head -1 || true)"
-[[ -n "$APK_PATH" ]] || die "APK not found under $CHROMIUM_SRC/$OUT_DIR/apks"
+APK_PATH="$CHROMIUM_SRC/$OUT_DIR/apks/ChromePublic.apk"
+if [[ ! -f "$APK_PATH" ]]; then
+  APK_PATH="$(ls "$CHROMIUM_SRC/$OUT_DIR"/apks/*.apk 2>/dev/null | grep -v -e Test -e Monochrome | head -1 || true)"
+fi
+[[ -n "$APK_PATH" && -f "$APK_PATH" ]] || die "APK not found under $CHROMIUM_SRC/$OUT_DIR/apks"
 DEST="$APK_OUT/lumo-$CONFIG-$(date +%Y%m%d-%H%M).apk"
 cp "$APK_PATH" "$DEST"
 ln -sf "$(basename "$DEST")" "$APK_OUT/lumo-latest.apk"

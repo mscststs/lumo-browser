@@ -1,6 +1,6 @@
 --- a/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelContainerCoordinatorImpl.java
 +++ b/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelContainerCoordinatorImpl.java
-@@ -68,6 +68,11 @@
+@@ -68,6 +68,13 @@
      private final TopControlsStacker mTopControlsStacker;
      private final IncognitoStateProvider mIncognitoStateProvider;
      private final SidePanelResizeManager mResizeManager;
@@ -9,21 +9,43 @@
 +     * upstream side-by-side layout (with the manual resize handle).
 +     */
 +    private final SidePanelBottomSheet mBottomSheet;
++    /** Whether the last layout pass used the bottom-sheet (narrow) presentation. */
++    private boolean mWasNarrowWindow;
  
      private @Nullable SidePanelContent mCurrentContent;
  
-@@ -127,6 +132,7 @@
+@@ -127,6 +134,8 @@
          mIncognitoStateProvider = incognitoStateProvider;
          mResizeManager =
                  new SidePanelResizeManager(activity, this::getContentViewToPinDuringResize);
 +        mBottomSheet = new SidePanelBottomSheet(activity, mContainerView, mInnerContainerView);
++        mWasNarrowWindow = isNarrowWindow();
      }
  
      ///////////////////////////////////////////////////////////////////////////////////////////////
-@@ -469,6 +475,13 @@
+@@ -137,6 +146,16 @@
+     public void init() {
+         log(TAG, "init");
+         ThreadUtils.assertOnUiThread();
++        // Lumo: the window can cross the phone/tablet breakpoint without recreating the activity
++        // (rotation, desktop-mode resize). The side UI only recomputes on its own updates, so watch
++        // the container's layout and re-evaluate the presentation when its size changes.
++        mContainerView.addOnLayoutChangeListener(
++                (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
++                    if ((right - left) != (oldRight - oldLeft)
++                            || (bottom - top) != (oldBottom - oldTop)) {
++                        handlePresentationChangeIfNeeded();
++                    }
++                });
+         mSideUiCoordinator.registerSideUiContainer(this);
+         mIncognitoStateProvider.addIncognitoStateObserverAndTrigger(this);
+         mNativeBridgeSelector.init();
+@@ -469,6 +488,15 @@
          log(TAG, "determineShowableSize", availableWidth, windowWidth, isFullscreen);
          ThreadUtils.assertOnUiThread();
  
++        handlePresentationChangeIfNeeded();
++
 +        if (isNarrowWindow()) {
 +            // Lumo: phones present the panel as a bottom sheet overlay. Reserve a single pixel so
 +            // the page keeps its full width and stays interactive; the sheet itself is attached to
@@ -34,10 +56,12 @@
          if (mSimulateAutoCloseConditionForTesting) {
              return new SideUiSize(0, HeightType.NOT_APPLICABLE);
          }
-@@ -504,6 +517,19 @@
+@@ -504,6 +532,21 @@
          log(TAG, "setRenderedWidth", renderedWidth);
          ThreadUtils.assertOnUiThread();
  
++        handlePresentationChangeIfNeeded();
++
 +        if (isNarrowWindow()) {
 +            if (renderedWidth == 0) {
 +                mBottomSheet.detach();
@@ -54,7 +78,7 @@
          LayoutParams layoutParams = mContainerView.getLayoutParams();
          assert layoutParams != null
                  : "setRenderedWidth() should be called after the container View is attached";
-@@ -872,6 +898,14 @@
+@@ -872,6 +915,36 @@
          }
      }
  
@@ -62,6 +86,28 @@
 +     * Lumo: whether the panel should use the bottom-sheet presentation. 600dp is the conventional
 +     * Material breakpoint between phone and tablet layouts.
 +     */
++    /**
++     * Lumo: ChromeTabbedActivity handles configuration changes itself, so the window can cross the
++     * phone/tablet breakpoint without recreating the activity. Move the container between the
++     * bottom-sheet host and the side-by-side anchor when that happens.
++     */
++    private void handlePresentationChangeIfNeeded() {
++        boolean narrow = isNarrowWindow();
++        if (narrow == mWasNarrowWindow) return;
++        log(TAG, "presentation change", narrow ? "bottom-sheet" : "side-by-side");
++        mWasNarrowWindow = narrow;
++        mResizeManager.clearLiveResizeState();
++        // Side UI owns the container's parent/width bookkeeping. Moving it between hosts while it
++        // is live leaves the two layout systems disagreeing (the panel ends up hidden), so close
++        // the panel and let the next open present it with the new host. In practice this only
++        // happens when the window crosses the 600dp breakpoint (rotation, desktop-mode resize).
++        if (mCurrentContent != null) {
++            startClosingPanel(/* suppressAnimations= */ true);
++        }
++        mBottomSheet.detach();
++        mBottomSheet.prepareForWideLayout();
++    }
++
 +    private boolean isNarrowWindow() {
 +        return mContainerView.getResources().getConfiguration().screenWidthDp < 600;
 +    }
@@ -71,7 +117,7 @@
      }
 --- /dev/null
 +++ b/chrome/browser/ui/side_panel/internal/android/java/src/org/chromium/chrome/browser/ui/side_panel/SidePanelBottomSheet.java
-@@ -0,0 +1,194 @@
+@@ -0,0 +1,221 @@
 +// Copyright 2026 The Chromium Authors
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -126,14 +172,10 @@
 +        mContainerView = containerView;
 +        mInnerContainerView = innerContainerView;
 +        mHandleView = createHandleView();
-+        // Place the drag handle above the panel header (which has the title + close button). The
-+        // touch target is deliberately taller than the 4dp visual bar so dragging is comfortable.
-+        LinearLayout.LayoutParams touchParams =
-+                new LinearLayout.LayoutParams(
-+                        ViewGroup.LayoutParams.MATCH_PARENT, dp(24));
-+        mInnerContainerView.addView(mHandleView, 0, touchParams);
 +        mHandleView.setOnTouchListener(this::onHandleTouch);
 +        mHandleView.setOnClickListener(v -> togglePeek());
++        // NOTE: the handle is only added while the sheet is attached. Wide windows keep the
++        // side-by-side panel and must not lose 24dp of header touch targets to a hidden handle.
 +        mPeekPx = dp(PEEK_DP);
 +        mHeightPx = -1; // Set on attach.
 +    }
@@ -162,9 +204,25 @@
 +        return mHost != null && mContainerView.getParent() == mHost;
 +    }
 +
++    /** Adds the drag handle above the panel header (idempotent). */
++    private void attachHandle() {
++        if (mHandleView.getParent() != null) return;
++        LinearLayout.LayoutParams touchParams =
++                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(24));
++        mInnerContainerView.addView(mHandleView, 0, touchParams);
++    }
++
++    /** Removes the drag handle (used when switching to the side-by-side presentation). */
++    private void detachHandle() {
++        if (mHandleView.getParent() instanceof ViewGroup) {
++            ((ViewGroup) mHandleView.getParent()).removeView(mHandleView);
++        }
++    }
++
 +    /** Attaches the sheet to the activity content view at its current height. */
 +    void attach() {
 +        if (isAttached()) return;
++        attachHandle();
 +        Activity activity = (Activity) mContext;
 +        View content = activity.findViewById(android.R.id.content);
 +        if (!(content instanceof ViewGroup)) return;
@@ -182,12 +240,27 @@
 +        mContainerView.requestLayout();
 +    }
 +
-+    /** Detaches the sheet (panel is being closed). */
++    /** Detaches the sheet (panel is being closed or switching to side-by-side). */
 +    void detach() {
 +        if (mContainerView.getParent() instanceof ViewGroup) {
 +            ((ViewGroup) mContainerView.getParent()).removeView(mContainerView);
 +        }
++        detachHandle();
 +        mHost = null;
++    }
++
++    /**
++     * Normalizes the container for the side-by-side presentation (wide windows) without
++     * reparenting it: the side UI pass that follows moves it back to the anchor container.
++     */
++    void prepareForWideLayout() {
++        detachHandle();
++        ViewGroup.LayoutParams params = mContainerView.getLayoutParams();
++        if (params != null) {
++            params.height = ViewGroup.LayoutParams.MATCH_PARENT;
++            mContainerView.setLayoutParams(params);
++        }
++        mHeightPx = -1;
 +    }
 +
 +    /** Applies the sheet's layout params; the sheet ignores the side-by-side reserved width. */

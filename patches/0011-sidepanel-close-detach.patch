@@ -1,14 +1,51 @@
 --- a/chrome/browser/ui/side_ui/internal/android/java/src/org/chromium/chrome/browser/ui/side_ui/SideUiCoordinatorImpl.java
 +++ b/chrome/browser/ui/side_ui/internal/android/java/src/org/chromium/chrome/browser/ui/side_ui/SideUiCoordinatorImpl.java
-@@ -1143,18 +1143,24 @@
+@@ -413,6 +413,17 @@
+                 container.setVisibility(visibility);
+             }
+         }
++        // Lumo: a side UI container can be hosted outside of the anchor containers (phones show
++        // the side panel as a bottom sheet attached to the activity content view). Hide/show those
++        // as well so the panel never floats above the tab switcher or other layouts that hide the
++        // side UI.
++        for (SideUiContainer container : mSideUiContainers) {
++            View view = container.getView();
++            if (view.getParent() != null && view.getParent() != mAnchorContainers.get(
++                    container.getAnchorSide())) {
++                view.setVisibility(visibility);
++            }
++        }
+     }
+ 
+     ///////////////////////////////////////////////////////////////////////////////////////////////
+@@ -1137,24 +1148,33 @@
+         View sideUiContainerView = sideUiContainer.getView();
+         ViewParent currentParent = sideUiContainerView.getParent();
+ 
++        var anchorContainer = mAnchorContainers.get(sideUiContainer.getAnchorSide());
++        assert anchorContainer != null : "no anchor container for the requested side";
++
++        // The resize handle must be released even if the view was already detached (e.g. the
++        // bottom sheet container on phones removed itself first).
++        SideUiResizeHandler resizeHandler = mResizeHandlers.get(sideUiContainer.getAnchorSide());
++        if (resizeHandler != null) resizeHandler.destroyHandleView();
++
+         // No-op if already detached.
+         if (currentParent == null) {
+             return;
          }
  
-         var anchorContainer = mAnchorContainers.get(sideUiContainer.getAnchorSide());
+-        var anchorContainer = mAnchorContainers.get(sideUiContainer.getAnchorSide());
 -        assert anchorContainer != null && anchorContainer == currentParent
--                : "SideUiContainer was attached to an unknown group.";
-+        assert anchorContainer != null : "no anchor container for the requested side";
++        assert anchorContainer == currentParent || currentParent == getRootView()
+                 : "SideUiContainer was attached to an unknown group.";
  
 -        anchorContainer.removeView(sideUiContainerView);
+-
+-        // The resize handle is only meaningful while the container is attached, and the assert
+-        // below requires the anchor container to be empty.
+-        SideUiResizeHandler resizeHandler = mResizeHandlers.get(sideUiContainer.getAnchorSide());
+-        if (resizeHandler != null) resizeHandler.destroyHandleView();
 +        // Lumo: the container may be hosted outside of the anchor container (phones present the
 +        // side panel as a bottom sheet attached to the Activity content view). Remove it from
 +        // whichever parent currently owns it instead of assuming the anchor container does;
@@ -16,11 +53,6 @@
 +        if (currentParent instanceof ViewGroup) {
 +            ((ViewGroup) currentParent).removeView(sideUiContainerView);
 +        }
- 
-         // The resize handle is only meaningful while the container is attached, and the assert
-         // below requires the anchor container to be empty.
-         SideUiResizeHandler resizeHandler = mResizeHandlers.get(sideUiContainer.getAnchorSide());
-         if (resizeHandler != null) resizeHandler.destroyHandleView();
  
 -        assert anchorContainer.getChildCount() == 0;
 -        anchorContainer.setVisibility(View.GONE);

@@ -65,7 +65,8 @@ UA：`Chrome/157.0.0.0 Mobile`（Android 11 被识别为 `Android 10; K`，Chrom
 ## 5. 对我们的直接指令
 
 1. `scripts/device/*` 已按"逗号分隔 + 外部目录 + set-debug-app"实现。
-2. `patches/0001` 目标是去掉 `set-debug-app` 依赖（CI 更稳）。
+2. 装载走上游的 debug-app 握手（`/data/local/tmp/chrome-command-line` + `am set-debug-app`），
+   不读共享存储里的 flag 文件（见 docs/08-security-and-hardening.md）。
 3. `patches/0002` 目标：手机工具栏承载点。
 4. 新补丁（v0.1 核心）：**sidePanel 手机宿主**——竖屏 bottom sheet / 横屏右侧抽屉；action 点击按 `sidePanel.getOptions().enabled` 与 `setPanelBehavior({openPanelOnActionClick})` 决定是否打开；`chrome.sidePanel.open()` 的手势校验由 UI 层授予。
 5. `userScripts` 开关必须做进设置页（否则 `../lumo-userscript-manager` 的核心功能不可用）。

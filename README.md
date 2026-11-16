@@ -29,6 +29,7 @@ scripts/chromium/toolchain.sh      # clang + LASTCHANGE + gclient_args
 scripts/chromium/build.sh a        # 打补丁 + 品牌化 + gn + siso → artifacts/apk/
 
 scripts/device/install.sh          # MIUI root 安装
+# 装载扩展走上游 debug-app 握手：adb shell am set-debug-app --persistent dev.lumo.browser
 scripts/device/verify.sh           # 30 项探针 + 扩展/侧栏/关闭回归，产出证据
 scripts/verify/lumo-e2e.sh         # Lumo 侧栏 + mock OpenAI 端到端
 ```

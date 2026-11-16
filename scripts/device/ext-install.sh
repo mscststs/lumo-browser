@@ -35,13 +35,13 @@ D push "$LUMO_OUT" "$EXT_ROOT/lumo" >/dev/null
 D push "$US_OUT" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
 
 step "register via chrome command line"
-# NOTE: Chrome reads a single value per switch; repeat flags overwrite each
-# other, so extensions MUST be comma-separated in one --load-extension.
-# We write the app-external command line file (patches/0001) *and* the classic
-# debug-app one, so the flow works with or without the patch.
+# NOTE: Chrome reads a single value per switch; repeated flags overwrite each other, so
+# extensions MUST be comma-separated in one --load-extension. Flags live in /data/local/tmp and
+# are picked up through Chrome's debug-app handshake (no shared-storage flag file).
 CMDLINE="chrome --load-extension=$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager --no-first-run --disable-fre --no-default-browser-check"
-DR "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
-D shell "printf '%s\n' '$CMDLINE' > /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
+# Write as the shell user: /data/local/tmp is shell-writable, and going through `su -c`
+# mangles the embedded newline/quoting (flags ended up concatenated with "n").
+D shell "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
 DR "am set-debug-app --persistent $PRODUCT_PKG" || true
 DR "am force-stop $PRODUCT_PKG"
 log "extensions staged; relaunch the app (scripts/device/launch.sh)"

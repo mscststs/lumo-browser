@@ -18,14 +18,21 @@ case "$MODE" in
     step "gclient runhooks"
     ( cd "$CHROMIUM_ROOT" && gclient runhooks )
     step "toolchain check"
+    missing=0
     for p in \
       third_party/llvm-build/Release+Asserts/bin/clang \
-      third_party/android_ndk \
+      third_party/android_toolchain/ndk \
       third_party/android_sdk/public \
       third_party/rust-toolchain \
       build/linux/debian_bullseye_amd64-sysroot ; do
-      if [[ -e "$CHROMIUM_SRC/$p" ]]; then log "ok   $p"; else warn "MISS $p"; fi
+      if [[ -e "$CHROMIUM_SRC/$p" ]]; then
+        log "ok   $p"
+      else
+        warn "MISS $p"
+        missing=1
+      fi
     done
+    (( missing == 0 )) || die "toolchain incomplete: run scripts/chromium/cipd-deps.sh and scripts/chromium/toolchain.sh"
     ;;
   *) die "usage: $0 [apt|hooks]" ;;
 esac

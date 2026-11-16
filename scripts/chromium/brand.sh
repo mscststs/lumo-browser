@@ -15,6 +15,7 @@ source "$(dirname "$0")/../lib/common.sh"
 
 ICON_SRC="${ICON_SRC:-$REPO_ROOT/../lumo/public/icon/1024.png}"
 [[ -f "$ICON_SRC" ]] || die "icon not found: $ICON_SRC"
+command -v convert >/dev/null || die "ImageMagick 'convert' is required for branding"
 
 step "app name"
 python3 - "$CHROMIUM_SRC/chrome/android/java/res_chromium_base/values/channel_constants.xml" <<'PY'
@@ -47,6 +48,13 @@ done
 step "BRANDING"
 sed -i 's/^PRODUCT_FULLNAME=.*/PRODUCT_FULLNAME=Lumo/' "$CHROMIUM_SRC/chrome/app/theme/chromium/BRANDING"
 sed -i 's/^PRODUCT_SHORTNAME=.*/PRODUCT_SHORTNAME=Lumo/' "$CHROMIUM_SRC/chrome/app/theme/chromium/BRANDING"
+
+step "verify branding"
+grep -q '<string name="app_name" translatable="false">Lumo</string>' \
+  "$CHROMIUM_SRC/chrome/android/java/res_chromium_base/values/channel_constants.xml" \
+  || die "branding failed: app_name is not Lumo (upstream string changed?)"
+grep -q '^PRODUCT_SHORTNAME=Lumo$' "$CHROMIUM_SRC/chrome/app/theme/chromium/BRANDING" \
+  || die "branding failed: PRODUCT_SHORTNAME not Lumo"
 
 step "done"
 grep -E '^PRODUCT_(FULL|SHORT)NAME' "$CHROMIUM_SRC/chrome/app/theme/chromium/BRANDING"

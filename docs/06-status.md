@@ -9,7 +9,7 @@
 | 自构建 APK | ✅ 344MB | `artifacts/apk/lumo-a-*.apk` |
 | 品牌化 | ✅ 应用名 Lumo / 包名 dev.lumo.browser / 图标 | `scripts/chromium/brand.sh` |
 | GPU | ✅ ES2 回退运行（Adreno/ANGLE ES3 失败不再崩） | `patches/0006` |
-| 扩展装载（无 root 也可靠） | ✅ 从 app 外部目录读命令行 | `patches/0001` |
+| 扩展装载 | ✅ 上游 debug-app 握手（`/data/local/tmp` + `am set-debug-app`） | `scripts/device/ext-install.sh` |
 | 三个扩展 + 探针 | ✅ Lumo 1.0.27 / Lumo MV3 Probe / Lumo 用户脚本管理器 | `chrome://extensions` |
 | Service Worker | ✅ 均在运行 | 扩展页「检查视图」 |
 | **手机 side panel = 可拖拽 Bottom Sheet** | ✅ peek(64dp) / 收起(45%) / 展开(75%)，页面始终可见可交互，面板不销毁 | `artifacts/verify/sheet2-*.png` |
@@ -26,14 +26,15 @@
 
 | 补丁 | 内容 |
 |---|---|
-| 0001 | 从 app 外部目录读取 chrome 命令行（CI/自动化装载扩展） |
+
 | 0002 | 手机扩展工具栏（容器 + ToolbarPhone 接收 coordinator + 去掉 tablet 强转） |
 | 0003 | 默认启用 Android side panel（含手动改宽 feature） |
 | 0005 | 尊重 `--disable-features=Vulkan` |
 | 0006 | GPU 信息收集允许 ES2 回退 |
 | 0008 | `userScripts` 改为默认允许（可关闭） |
 | 0009 | popup 无内联按钮时回退到扩展容器作为锚点 |
-| 0010 | **side panel 双形态**：窄屏 Bottom Sheet（拖拽/peek），宽屏并排可调宽 |
+| 0010 | **side panel 双形态**：窄屏 Bottom Sheet（拖拽/peek），宽屏并排可调宽；跨 600dp 断点自动关闭面板，重开即用新形态 |
+| 0011 | 关闭侧栏时的容器 detach 修复（不再闪退）；隐藏侧栏 UI 时同步隐藏底部抽屉 |
 
 ## 验收命令与证据
 

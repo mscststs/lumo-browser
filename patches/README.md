@@ -11,7 +11,6 @@
 
 | # | 名称 | 目的 | 状态 |
 |---|---|---|---|
-| 0001 | command-line-external-files | 允许从 app 外部目录读 `chrome-command-line`，CI 免 `set-debug-app`、免 root | TODO |
 | 0002 | phone-extensions-toolbar | `toolbar_phone.xml` 加 `extensions_toolbar_container_stub` + `ToolbarPhone` 接线（参考 tablet） | TODO |
 | 0003 | extensions-page-mobile | `chrome://extensions` 移动端视口/触摸/卡片宽度 | TODO |
 | 0005 | gpu-respect-vulkan-optout | 尊重 `--disable-features=Vulkan`，避免 WebGPU interop 强拉 Vulkan | 已有 |

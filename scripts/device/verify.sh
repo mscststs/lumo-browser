@@ -34,9 +34,15 @@ D shell rm -rf "$EXT_ROOT"/probe-* "$EXT_ROOT/lumo" "$EXT_ROOT/lumo-userscript-m
 D push "$REPO_ROOT/tools/probe-extension" "$PROBE_DIR" >/dev/null
 D push "$EXT_LUMO_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo" >/dev/null
 D push "$EXT_US_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
+# Extensions are loaded through the upstream rooted flow: `/data/local/tmp` command line +
+# `am set-debug-app` (Chrome's documented non-rooted/debug-app handshake). We deliberately do
+# NOT read flags from shared storage — any app with all-files access could otherwise inject
+# `--load-extension` / `--remote-debugging-port`.
 CMDLINE="chrome --load-extension=$PROBE_DIR,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager --no-first-run --disable-fre --no-default-browser-check --remote-debugging-port=9222"
-DR "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
-D shell "printf '%s\n' '$CMDLINE' > /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
+# Write as the shell user: /data/local/tmp is shell-writable, and going through `su -c`
+# mangles the embedded newline/quoting (flags ended up concatenated with "n").
+D shell "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
+D shell "rm -f /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
 DR "am set-debug-app --persistent $PRODUCT_PKG" || true
 
 # 3) launch with a clean log
@@ -120,23 +126,57 @@ fi
 # 5) logcat + probe payload
 step "collect logcat"
 D logcat -d > "$OUT/logcat.txt" 2>/dev/null || true
-python3 - "$OUT" <<'PY'
-import json, re, sys
+D forward tcp:9222 localabstract:chrome_devtools_remote >/dev/null 2>&1 || true
+if python3 "$REPO_ROOT/tools/probe-dump.py" --run --out "$OUT/probe.json" 2>/dev/null; then
+  python3 - "$OUT" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1] + '/probe.json'))
+m = d.get('meta', {})
+print(f"probe: {m.get('pass')} pass / {m.get('fail')} fail / {m.get('total')} total")
+PY
+else
+  warn "CDP probe dump failed; falling back to logcat parsing"
+  python3 - "$OUT" <<'PY'
+import json, sys
 out = sys.argv[1]
 raw = open(f'{out}/logcat.txt', encoding='utf-8', errors='ignore').read()
-hit = None
-for m in re.finditer(r'PROBE_JSON (\{.*\})', raw):
-    hit = m.group(1)
-if hit:
-    try:
-        data = json.loads(hit)
-    except json.JSONDecodeError:
-        data = None
-    if data:
-        open(f'{out}/probe.json', 'w').write(json.dumps(data, indent=2))
-        meta = data.get('meta', {})
-        print(f"probe: {meta.get('pass')} pass / {meta.get('fail')} fail / {meta.get('total')} total")
+idx = raw.rfind('PROBE_JSON ')
+data = None
+if idx >= 0:
+    start = raw.index('{', idx)
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(raw)):
+        ch = raw[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == '\\':
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                try:
+                    data = json.loads(raw[start:i + 1])
+                except json.JSONDecodeError:
+                    data = None
+                break
+if data:
+    open(f'{out}/probe.json', 'w').write(json.dumps(data, indent=2))
+    m = data.get('meta', {})
+    print(f"probe: {m.get('pass')} pass / {m.get('fail')} fail / {m.get('total')} total")
+else:
+    print('probe: not found in logcat')
 PY
+fi
 
 # 6) summary
 {
@@ -150,6 +190,29 @@ PY
   echo "--- close panel:"
   cat "$OUT/close-panel.txt" 2>/dev/null || echo "(not run)"
 } | tee "$OUT/summary.txt"
+
+step "gate"
+GATE_FAIL=0
+if [[ -f "$OUT/probe.json" ]]; then
+  PASS="$(python3 -c "import json;print(json.load(open('$OUT/probe.json'))['meta']['pass'])" 2>/dev/null || echo 0)"
+  TOTAL="$(python3 -c "import json;print(json.load(open('$OUT/probe.json'))['meta']['total'])" 2>/dev/null || echo 0)"
+  log "probe: $PASS/$TOTAL"
+  (( PASS * 100 >= TOTAL * 80 )) || { warn "probe pass rate < 80%"; GATE_FAIL=1; }
+else
+  warn "missing probe.json"; GATE_FAIL=1
+fi
+for name in Lumo "Lumo MV3 Probe" "Lumo 用户脚本管理器"; do
+  grep -q "$name" "$OUT/extensions-strings.txt" 2>/dev/null || { warn "extension not listed: $name"; GATE_FAIL=1; }
+done
+[[ "$(grep -c 'Service Worker' "$OUT/extensions-strings.txt" 2>/dev/null || echo 0)" -ge 3 ]] \
+  || { warn "expected >=3 running service workers"; GATE_FAIL=1; }
+grep -q 'close_panel=ok' "$OUT/close-panel.txt" 2>/dev/null \
+  || { warn "closing the side panel did not survive"; GATE_FAIL=1; }
+if (( GATE_FAIL )); then
+  echo "GATE=FAIL" | tee -a "$OUT/summary.txt"
+  exit 1
+fi
+echo "GATE=OK" | tee -a "$OUT/summary.txt"
 
 step "done"
 ls -1 "$OUT"

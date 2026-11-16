@@ -507,12 +507,15 @@ async function probeWebRequestEvents() {
   chrome.webRequest.onBeforeRequest.addListener(onBefore, { urls: ['<all_urls>'] });
   chrome.webRequest.onCompleted.addListener(onCompleted, { urls: ['<all_urls>'] });
   try {
-    await fetch('https://example.com/?lumo_probe=1', { cache: 'no-store' });
-  } catch (e) { /* offline is still fine: events may not fire */ }
-  await new Promise((r) => setTimeout(r, 800));
+    await fetch('https://example.com/?lumo_probe=1', {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(1200)
+    });
+  } catch (e) { /* offline/slow is fine: the listeners are what we are testing */ }
+  await new Promise((r) => setTimeout(r, 200));
   chrome.webRequest.onBeforeRequest.removeListener(onBefore);
   chrome.webRequest.onCompleted.removeListener(onCompleted);
-  return `onBeforeRequest=${events.before}, onCompleted=${events.completed}`;
+  return `listeners registered; onBeforeRequest=${events.before}, onCompleted=${events.completed}`;
 }
 
 async function probeMainWorldScripting() {

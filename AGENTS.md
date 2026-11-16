@@ -13,7 +13,7 @@ Android Chromium 内核浏览器，目标是**完整运行 MV3 扩展**（一等
 ## 1. 目录
 
 ```
-patches/            按序应用的补丁（0001-*.patch），带 README 说明动机与上游 crbug
+patches/            按序应用的补丁（NNNN-*.patch），带 README 说明动机与上游 crbug
 scripts/chromium/   拉取、打补丁、构建、产物归档
 scripts/device/     安装、启动、截图、扩展装载、验收
 tools/verify/       验收清单与判定逻辑（机器可读）
