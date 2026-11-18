@@ -1,7 +1,7 @@
 # 贡献指南（CONTRIBUTING）
 
 本仓库维护的是 **Chromium 的最小侵入补丁集 + 构建/验证工具链**，不是 Chromium fork。
-提交前请先读完 `AGENTS.md`（不可协商约束）和 `docs/09-build-iteration.md`（迭代模型与成本）。
+提交前请先读完 `AGENTS.md`（不可协商约束）和 `docs/05-build.md`（迭代模型与成本）。
 
 ## 1. 环境
 
@@ -96,7 +96,7 @@ git status --short                     # 不应出现 artifacts/、out/、APK
 ```
 build: out 目录按 flavor 隔离，避免 FAST 切换触发全量
 patch: 0012 手机扩展工具栏支持内联 action
-docs: 09 记录实测构建成本
+docs: 05 补充 out 目录与缓存规则
 test: verify 探针扩到 30 项
 fix: 关闭侧栏时 detach 当前父容器
 ci: 增加补丁编号与文档链接检查
@@ -111,7 +111,7 @@ ci: 增加补丁编号与文档链接检查
 - [ ] `bash tools/verify/check-repo.sh` 通过
 - [ ] 构建通过；补丁在干净树可 `git apply`（CI 会校验编号与格式）
 - [ ] 真机证据附在 `artifacts/verify/<run-id>/`，`summary.txt` 含 `GATE=OK`
-- [ ] 相关文档同步：`patches/README.md`、`docs/09`、`AGENTS.md`（如涉及流程）
+- [ ] 相关文档同步：`patches/README.md`、`docs/05-build.md`、`AGENTS.md`（如涉及流程）
 - [ ] 未提交 `artifacts/`、`out/`、APK、Chromium 源码
 
 需要新增或修改 agent 工作方式时，改 `.agents/skills/` 下的 skill，并在 `AGENTS.md` 里保持指针一致。

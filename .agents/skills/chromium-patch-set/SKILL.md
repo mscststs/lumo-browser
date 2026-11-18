@@ -53,7 +53,7 @@ cd ~/lumo-browser && scripts/chromium/apply-patches.sh
 
 # 5) 构建 + 真机验证（见 device-verification skill）
 
-# 6) 更新文档：patches/README.md 状态表 + 动机；docs/09 若涉及成本
+# 6) 更新文档：patches/README.md（清单/门控）；成本规则见 docs/05-build.md
 ```
 
 注意：`apply-patches.sh` 用 `.lumo-patches/<patch>.stamp` 记录已应用版本（sha256）。
@@ -74,7 +74,7 @@ cd ~/lumo-browser && scripts/chromium/apply-patches.sh
 
 1. 新 tarball → 新 out 目录（不要复用旧 out）。
 2. 逐条 `git apply --check`，失败的重做而不是硬塞。
-3. 每条补丁重新跑一次真机验证；`docs/06` 更新版本号与证据。
+3. 每条补丁重新跑一次真机验证，证据路径写进提交正文（不写进 docs）。
 4. 版本升级是唯一值得全量构建的时机（其余时间都在增量）。
 
 ## 5. 删除/合并补丁
@@ -83,7 +83,7 @@ cd ~/lumo-browser && scripts/chromium/apply-patches.sh
 
 - 上游已经实现了同样能力（引用上游 commit/文件路径）；
 - 或者能力已由扩展/运行时开关完全替代，且产品默认值不再需要它；
-- `docs/06`、`patches/README.md`、`AGENTS.md` 的补丁数同步更新；
+- `patches/README.md` 与 `AGENTS.md` 的补丁数同步更新；
 - 真机回归通过（`GATE=OK`）。
 
 删除方式：删文件 + 删 `.lumo-patches/*.stamp` + 更新文档；**不要**保留空编号。
@@ -99,4 +99,4 @@ cd ~/lumo-browser && scripts/chromium/apply-patches.sh
 
 - `references/patch-anatomy.md`：补丁结构、注释风格、门控写法
 - `references/rebase-playbook.md`：升级/失败重做流程
-- 仓库内：`patches/README.md`、`docs/09-build-iteration.md` §3
+- 仓库内：`patches/README.md`、`docs/05-build.md` §4

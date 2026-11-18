@@ -38,4 +38,4 @@
 - 新增工具：Python 3.10+、标准库优先、文件头写 `Usage:`；能被 `python3 -m py_compile` 通过。
 - 依赖 CDP 的工具默认端口 `9222`（`verify.sh` 的命令行已带 `--remote-debugging-port=9222`）；
   用完记得 `scripts/chromium/flags.sh clear`。
-- 探针/夹具的改动会改变验收结论：同步 `tools/verify/manifest.json` 与 `docs/07-capability-matrix.md`。
+- 探针/夹具的改动会改变验收结论：同步 `tools/verify/manifest.json`（并核对 `docs/02-capabilities.md` 的承诺边界）。

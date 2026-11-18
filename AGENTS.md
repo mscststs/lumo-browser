@@ -5,7 +5,7 @@ Android Chromium 内核浏览器，目标是**完整运行 MV3 扩展**（一等
 
 本文件是**硬约束与工作流**。操作细节不在正文展开，按指针读：
 
-- 构建/迭代成本与三层模型 → `docs/09-build-iteration.md`
+- 构建约束 / 成本 / 缓存 → `docs/05-build.md`
 - 具体操作手册 → `.agents/skills/`（构建 / 补丁 / 真机验证）
 - 验收口径 → `docs/03-verification.md` + `tools/verify/manifest.json`
 - 补丁清单 → `patches/README.md`；签名边界 → `keys/README.md`、`SECURITY.md`
@@ -15,7 +15,7 @@ Android Chromium 内核浏览器，目标是**完整运行 MV3 扩展**（一等
 1. **内核只做最小侵入补丁**。上游已有的能力不重写；上游缺的用 `patches/` 里的 patch 文件补，
    禁止 `sed -i` 直改源码树。
 2. **补丁必须可重放**：`scripts/chromium/apply-patches.sh` 能在干净源码上按序 `git apply` 成功；
-   新增补丁必须更新 `patches/README.md` 的状态表。
+   新增补丁必须更新 `patches/README.md` 的清单。
 3. **UI 走原生移动形态**，不做桌面窗口形态的"适配"。参考 `../lumo` 的四条设计法则
    （渐进式隐藏 / 交互归一化 / 渐进式披露 / 物理级动效）。
 4. **每次改动都要有设备证据**：截图、logcat 或 `chrome://extensions` 状态，
@@ -32,7 +32,7 @@ Android Chromium 内核浏览器，目标是**完整运行 MV3 扩展**（一等
 |---|---|
 | 产品名 / 包名 | Lumo / `dev.lumo.browser` |
 | 内核 | Chromium `160.0.8157.0`（official，arm64，`is_desktop_android=true`） |
-| 已构建配置 | `a`（真机 30/30 验收）；配置 `b`（手机 UI + 扩展核心）**尚未构建** |
+| 交付配置 | `a`（`is_desktop_android=true`）；`b` 不可直接编译（`docs/05-build.md` §3） |
 | 源码位置 | `~/chromium/src`（仓库外）；`DEPOT_TOOLS=~/depot_tools` |
 | 构建目标 | `chrome_public_apk` → `artifacts/apk/lumo-<config>-<ts>.apk`（≈343 MB） |
 | 签名 | `keys/lumo-dev.jks`（公开、仅 debug）→ 可 `pm install -r` 覆盖升级 |
@@ -45,7 +45,7 @@ Android Chromium 内核浏览器，目标是**完整运行 MV3 扩展**（一等
 .agents/skills/     一线操作手册（构建 / 补丁 / 真机验证），改流程时同步更新
 .github/            CI（静态检查 + 仓库卫生）与 PR 模板
 keys/               dev 签名密钥（故意入库，仅 debug，见 keys/README.md）
-patches/            NNNN-*.patch 按序应用 + README 状态表
+patches/            NNNN-*.patch 按序应用 + README 清单
 scripts/chromium/   取源码、依赖、工具链、打补丁、构建、签名、flags、缓存、doctor
 scripts/device/     安装、启动、扩展装载、验收、截图
 scripts/verify/     端到端（Lumo 侧栏 + mock OpenAI）
@@ -78,48 +78,32 @@ make help                                 # 以上命令的 Makefile 入口
 
 | 配置 | args.gn 关键项 | 用途 | out 目录 |
 |---|---|---|---|
-| `a` | `is_desktop_android = true` | 上游支持形态，当前验收基线 | `out/lumo-a`（FAST）/ `out/lumo-rel`（official） |
-| `b` | `target_os="android"` + `enable_desktop_android_extensions=true` | 手机原生 UI + 扩展核心，**实测被上游 gn 断言阻塞**（`docs/00` §5） | `out/lumo-b`（不存在；不要用 `build.sh b` 试） |
+| `a` | `is_desktop_android = true` | 上游唯一带完整扩展 UI 的 Android 形态，交付配置 | `out/lumo-a`（FAST）/ `out/lumo-rel`（official） |
+| `b` | `target_os="android"` + `enable_desktop_android_extensions=true` | 手机原生 UI + 扩展核心，**实测被上游 gn 断言阻塞**（`docs/05-build.md` §3） | `out/lumo-b`（不存在；不要用 `build.sh b` 试） |
 
 - `build.sh` 默认 `a`；`FAST=1`（默认）产非 official 包用于迭代，`FAST=0` 产 official 包用于验收。
 - 切换配置或 `FAST` = 一次全量构建（数小时、+10–20 GB）。先定配置，再开始改代码。
 - `DRY_RUN=1 scripts/chromium/build.sh a` 可以只看解析结果，不编译。
 
-## 5. 迭代模型（详见 `docs/09`）
+## 5. 迭代模型
 
-| 改动类型 | 走哪条路 | 成本 |
-|---|---|---|
-| 产品功能（侧栏、脚本、拦截） | 扩展仓库 → `ext-install.sh` | 秒级，不编内核 |
-| 行为/默认值/实验开关 | `flags.sh`（`--enable/--disable-features`） | 秒级，不编内核 |
-| 上游缺失的结构性代码 | `patches/` → `build.sh` | C++ 25 s / Java ~2 min |
-
-**三问**：能做扩展吗 → 上游只是默认值不对吗 → 上游真的缺代码吗？只有第三问成立才进 `patches/`。
+三问：能做扩展吗 → 上游只是默认值不对吗 → 上游真的缺代码吗。只有第三问成立才进 `patches/`。
+out 目录、成本量级、缓存与签名规则见 `docs/05-build.md`。
 
 ## 6. 补丁规则
 
 - 文件名 `NNNN-area-short-title.patch`，按序应用，编号只增不减。
 - 一个补丁只做一件事；标题行写清 what/why，正文引用上游文件路径或 crbug。
-- 生成方式：在 `~/chromium/src` 改完 → `git diff > patches/NNNN-*.patch` → 回滚源码 → 重放验证。
+- 生成方式：`scripts/chromium/patchwork.sh start/export/revert`（源码树没有 commit，`git diff` 不可用）。
 - 结构性补丁尽量用 `base::Feature` 门控；默认值翻转类（如 0003）必须能用命令行覆盖做回归。
-- 新增/修改补丁必须同步 `patches/README.md`（状态表 + 动机）。
+- 新增/修改补丁必须同步 `patches/README.md`（清单 + 门控 + 动机）。
 - CI 会检查补丁编号连续性、`--- a/` 头、README 覆盖；本机用 `tools/verify/check-repo.sh`。
 
-## 7. 验收口径（Definition of Done）
+## 7. 验收口径
 
-以 `tools/verify/manifest.json` 为准，核心项：
-
-- 两个扩展 + 探针在 `chrome://extensions` 中 enabled，无阻断性 manifest 警告。
-- SW 启动；`chrome.storage`/`alarms`/`notifications` 可用；30 项探针全部通过。
-- `sidePanel` 能打开 `sidepanel.html` 并可交互（`../lumo` 的核心界面）。
-- content script 注入成功；`scripting.executeScript` 返回结果（普通网页）。
-- `chrome.userScripts` 注册成功（`../lumo-userscript-manager`）。
-- DNR 规则生效（block/allow 至少各一条）。
-- 扩展 popup / options 可打开且尺寸正常。
-- 手机侧栏 = 可拖拽底部抽屉（peek/收起/展开），关闭不崩溃；宽屏 = 并排 + 可调宽。
-- Lumo 侧栏能完成 provider 配置 → 流式回复（`scripts/verify/lumo-e2e.sh`）。
-- APK 由 dev key 签名，`pm install -r` 可覆盖升级、不清 profile。
-
-任何一项失败 → 定位根因（logcat + `chrome://extensions` + 上游源码）→ 修复 → 重跑。
+硬门槛：`scripts/device/verify.sh` 输出 `GATE=OK`。判定项、陷阱与证据规则见
+`docs/03-verification.md` + `tools/verify/manifest.json`。
+证据只落 `artifacts/verify/<run-id>/`；文档与提交正文只引用路径，不复述状态。
 
 ## 8. 代码风格
 
@@ -152,5 +136,5 @@ make help                                 # 以上命令的 Makefile 入口
    `.agents/skills/chromium-patch-set`（补丁）、`.agents/skills/device-verification`（真机）。
 3. **改完自检**：`bash tools/verify/check-repo.sh` + `scripts/chromium/build.sh a`
    （或 `DRY_RUN=1` 验证解析）；真机改动再跑 `scripts/device/verify.sh`。
-4. **记录证据**：命令、耗时、证据路径（`artifacts/...`）写进提交正文与相关文档。
-5. **同步文档**：改流程 → 改 `AGENTS.md`/skill/`docs/09`；改补丁 → 改 `patches/README.md`。
+4. **记录证据**：命令、耗时、证据路径（`artifacts/...`）写进提交正文；不写进文档。
+5. **同步文档**：改流程 → 改 `AGENTS.md`/skill/`docs/05-build.md`；改补丁 → 改 `patches/README.md`。

@@ -2,7 +2,7 @@
 
 - 状态：已采纳
 - 日期：2026-11-15
-- 相关：`docs/00-strategy-and-start.md`、`patches/`、`docs/07-capability-matrix.md`
+- 相关：`docs/01-architecture.md`、`docs/02-capabilities.md`、`patches/`
 
 ## 背景
 
@@ -13,7 +13,7 @@ service worker 生命周期），同时保持手机原生体验。候选路线�
 |---|---|---|---|
 | A. 系统 WebView 自建外壳 | 无扩展引擎，需自研 API 桥 | 完全可控 | 扩展能力永远追不上 |
 | B. GeckoView | 扩展模型不同（非 MV3 兼容承诺） | 需自研 UI | 与 Chrome 扩展生态不兼容 |
-| C. Chromium 自构建 + 最小补丁 | 完整 MV3（实测 30/30） | 上游手机 UI + 少量补丁 | 每个 Chromium 版本重放补丁 |
+| C. Chromium 自构建 + 最小补丁 | 完整 MV3（探针清单覆盖） | 上游手机 UI + 少量补丁 | 每个 Chromium 版本重放补丁 |
 | D. fork 现成项目（Titanium） | 同上，但绑定他人 GPL 代码与节奏 | 不可控 | 法律与 rebase 双重风险 |
 
 ## 决策
@@ -28,7 +28,7 @@ service worker 生命周期），同时保持手机原生体验。候选路线�
 - ⚠️ 构建成本高（全量 2–4 h，增量 25 s–2 min），需要 120 GB 磁盘与 12 核机器。
 - ⚠️ 上游 UI 是桌面形态（`is_desktop_android`），手机形态靠补丁收敛
   （0002 工具栏、0010 侧栏双形态）。
-- ⚠️ 无官方更新通道/PGO，发行需要自建流程（见 `docs/09`）。
+- ⚠️ 无官方更新通道/PGO，发行需要自建流程（见 `docs/05-build.md`）。
 
 ## 替代方案
 

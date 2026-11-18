@@ -43,7 +43,7 @@
 | clipboardWrite | 权限 + `navigator.clipboard` |
 
 **判定口径**：`meta.fail` 只允许「探针故意未声明权限」的项（`offscreen`/`debugger`），
-其余任何 fail 都算缺口，必须写进 `docs/07` 并给出根因。
+其余任何 fail 都算缺口：在提交正文/issue 记录根因，并核对 `docs/02-capabilities.md` 的承诺边界是否写错。
 
 ## 3. GATE 规则
 
@@ -77,7 +77,7 @@ GATE=OK
 | 忽略 `userScripts` 开关 | 补丁 0008 后默认允许，但扩展仍需声明权限；详情页可关闭 |
 | 把模拟器结果当验收 | 模拟器只做冒烟，GPU/侧栏手势必须在真机 |
 
-## 5. 证据怎么写进文档/提交
+## 5. 证据只写进提交正文
 
 ```text
 验证：scripts/device/verify.sh → artifacts/verify/20261116-130705/summary.txt (GATE=OK)
@@ -85,4 +85,4 @@ GATE=OK
       Lumo e2e: artifacts/verify/lumo-e2e-20261116-130954/screen-lumo-e2e.png
 ```
 
-只写“已验证”而不给路径的改动，在 review 里视为未验证。
+只写“已验证”而不给路径的改动，在 review 里视为未验证。文档（`docs/`）只记约束，不记这些结果。

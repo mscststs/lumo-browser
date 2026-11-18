@@ -34,13 +34,13 @@
 
 ## 运行时开关优先
 
-进补丁前先过三问（`docs/09-build-iteration.md` §3）：能做扩展吗 → 上游已有代码只是默认值不对吗 →
+进补丁前先过三问（`docs/05-build.md` §4）：能做扩展吗 → 上游已有代码只是默认值不对吗 →
 上游真的缺代码吗？只有第三问成立才新增 patch。
 
 - 默认值翻转类（如 0003）**必须**同时能用命令行覆盖，方便不重编译做回归；但**不要**因此删除补丁：
   命令行只在 `am set-debug-app` 握手/可调试时生效，编译默认值才是产品默认。
 - 结构性补丁（0002/0009/0010/0011）应在注释里写清对应的接线点与门控点，便于以后包进 feature flag。
-- 补丁改 Java 按 ~2 min 估，改 C++ 按 ~25 s 估（实测见 `docs/09`）。
+- 补丁改 Java 按 ~2 min 估，改 C++ 按 ~25 s 估（实测见 `docs/05-build.md`）。
 
 ## 新增 / 修改补丁
 
@@ -48,7 +48,7 @@
 2. `patchwork.sh start` → 改源码 → `patchwork.sh export`。
 3. `(cd ~/chromium/src && git apply --check <patch>)`；`patchwork.sh revert`；`apply-patches.sh` 重放。
 4. 构建 + 真机证据（`scripts/device/verify.sh` → `GATE=OK`）。
-5. 更新本文件表格；若涉及成本/流程，同步 `docs/09`；若删除补丁，同步 `docs/06`、`AGENTS.md`。
+5. 更新本文件表格；若涉及成本/流程，同步 `docs/05-build.md`；若删除补丁，同步 `docs/03-verification.md`、`AGENTS.md`。
 
 ## 审计清单
 

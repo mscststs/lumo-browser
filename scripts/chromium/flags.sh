@@ -20,7 +20,7 @@
 # Why this exists: base::Feature defaults are compiled into the binary, but every
 # feature that is exposed to Java can also be flipped at runtime from here. That
 # means behaviour changes (side panel on/off, verbose logs, ...) do NOT need a
-# Chromium rebuild — only structural code gaps do. See docs/09-build-iteration.md.
+# Chromium rebuild — only structural code gaps do. See docs/05-build.md.
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 

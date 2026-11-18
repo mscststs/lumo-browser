@@ -70,7 +70,7 @@ scripts/device/install.sh                  # 5. 装机（MIUI 走 root pm instal
 1. `gclient_entries missing, .gclient file in parent directory` —— **无害**（tarball 没有 `.gclient_entries`），
    不要为此去跑 `gclient sync`（本网络会挂）。
 2. `gn gen` 说缺 `//third_party/xxx` —— 官方 tarball 省略了 `checkout_android` 依赖，
-   用 `fix-missing-deps.sh` / `fetch-dep.sh` / `fetch-tree.sh` 补齐，并把结论写进 `docs/01`。
+   用 `fix-missing-deps.sh` / `fetch-dep.sh` / `fetch-tree.sh` 补齐，并把结论写进 `docs/01-architecture.md` §6。
 3. 构建莫名变慢/全量 —— 九成是 `FAST` 或 `OUT_DIR` 与上次不同。用 `DRY_RUN=1` 确认。
 
 ## 6. 禁止
@@ -85,4 +85,4 @@ scripts/device/install.sh                  # 5. 装机（MIUI 走 root pm instal
 - `references/gn-args.md`：每个 GN 参数为什么这么设
 - `references/out-dirs-and-costs.md`：out 目录规则、成本实测方法与原始数据
 - `references/troubleshooting.md`：故障树
-- 仓库内：`docs/09-build-iteration.md`、`docs/01-architecture.md`
+- 仓库内：`docs/05-build.md`、`docs/01-architecture.md`

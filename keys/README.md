@@ -3,18 +3,10 @@
 `lumo-dev.jks` 是 Lumo Browser 自构建 APK 的**开发/测试签名密钥**。它**不是**发布密钥，
 用它签出的包**不能**上架、**不能**用于生产分发。
 
-## 为什么要把私钥放进仓库
+## 为什么入库
 
-| 问题 | 没有固定密钥 | 有固定密钥（本文件） |
-|---|---|---|
-| 每次重新构建后覆盖安装 | `INSTALL_FAILED_UPDATE_INCOMPATIBLE`，必须先卸载（丢数据、丢扩展、丢登录态） | `adb install -r` 直接覆盖升级 |
-| 扩展 ID 稳定性 | 扩展 ID 依赖扩展自己的 key，与 APK 无关；但 `--load-extension` 路径和 profile 会因卸载而清空 | profile 保留，`chrome://extensions` 状态、权限、用户脚本开关都在 |
-| 多人/多机验证 | 每人一份随机 key，证据不可复现 | 同一份 key，`apksigner` 证书指纹可写进验收记录 |
-| CI 无设备验证 | 无法预签 | 直接 `./gradlew` 式的无密钥构建 |
-
-上游 Chromium 的默认密钥 `build/android/chromium-debug.keystore`（别名 `chromiumdebugkey`，
-口令 `chromium`）是**全世界公开**的，任何人可以用它签一个同包名的包；它只用于“能装上”，
-不提供任何身份保证。本仓库的 dev key 同样是公开的（就放在这里），**安全等级相同：只防手滑，不防攻击**。
+固定 key 才能 `pm install -r` 覆盖升级（保留 profile、扩展、用户脚本开关）。
+完整权衡见 `docs/adr/0003-dev-signing-key-in-repo.md`。
 
 ## 事实清单（明面上写清楚）
 

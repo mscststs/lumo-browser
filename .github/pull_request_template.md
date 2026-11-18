@@ -33,7 +33,7 @@
 
 ## 文档
 
-- [ ] 涉及流程的改动已同步 `AGENTS.md` / `docs/09` / `.agents/skills/`
+- [ ] 涉及流程的改动已同步 `AGENTS.md` / `docs/05-build.md` / `.agents/skills/`
 - [ ] 涉及补丁的改动已同步 `patches/README.md`
 - [ ] 未提交 `artifacts/`、`out/`、APK 或 Chromium 源码
 

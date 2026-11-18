@@ -48,7 +48,7 @@ failed to apply 0010-sidepanel-bottom-sheet.patch (rebase needed: git -C ~/chrom
 1. **看失败 hunk**：`(cd ~/chromium/src && git apply --verbose patches/0010-*.patch 2>&1 | head -20)`
 2. **判断是“上游改了上下文”还是“上游已实现该功能”**：
    - 上下文漂移 → 重做补丁（见 §3）
-   - 上游已实现 → 删除该补丁（见 `SKILL.md` §5），并更新 `patches/README.md`、`docs/06`
+   - 上游已实现 → 删除该补丁（见 `SKILL.md` §5），并更新 `patches/README.md`
 3. **不要**用 `patch -p1 --fuzz` 或手工改到“能 apply”为止——stamp 会与补丁内容不一致，
    下次重放必炸。
 
@@ -87,7 +87,7 @@ rm -f ~/chromium/src/.lumo-patches/0010-*.stamp
 |---|---|---|
 | 编译错误：符号不存在 | 上游重命名/删除 API | 按新 API 重做补丁 |
 | 编译错误：`kFeature` 未声明 | feature 清单文件变了 | 检查 `chrome_feature_list.cc` 的声明与 `kFeaturesExposedToJava` |
-| 运行崩溃，栈在补丁文件里 | 上游生命周期变了（如侧栏 detach 路径） | 参考 `docs/08` 的审计方式，重新处理生命周期 |
+| 运行崩溃，栈在补丁文件里 | 上游生命周期变了（如侧栏 detach 路径） | 参考 `docs/04-ui-behaviour.md` 与补丁注释里的生命周期约束 |
 | 功能静默失效 | 上游把默认值改成 ENABLED/DISABLED | 对比 `patches/0003` 的思路：优先用编译默认值 + 运行时覆盖 |
 
 ## 5. 回滚到旧版本
@@ -104,7 +104,7 @@ scripts/device/install.sh artifacts/apk/lumo-latest.apk
 
 ## 6. 升级后的文档义务
 
-- `docs/06-status.md`：新版本号 + 新证据路径
+- 提交正文：新版本号 + 证据路径（docs 不记录状态）
 - `docs/01-architecture.md`：若上游代码位置/`enable_extensions_core` 逻辑变化
 - `patches/README.md`：每条补丁的状态与删除/新增
 - `README.md` / `AGENTS.md` 的版本徽章与“快速事实”表

@@ -22,7 +22,7 @@ scripts/chromium/fetch-tree.sh third_party/androidx/local_modifications
 ```
 
 - 根因：GCS 官方 tarball 省略了 `checkout_android` 的 git 依赖与部分 CIPD 条目。
-- 补完把结论写进 `docs/01-architecture.md` §5，避免下次重复踩。
+- 补完把结论写进 `docs/01-architecture.md` §6，避免下次重复踩。
 
 ## 3. 构建突然变成全量（几小时）
 
@@ -34,10 +34,10 @@ scripts/chromium/fetch-tree.sh third_party/androidx/local_modifications
 ## 4. 安装后 GPU 进程崩溃 / 浏览器秒退
 
 - 先确认包是 official：`FAST=0`。非 official Android 构建会启用 UBSan hardening trap 与
-  `DCHECK_ALWAYS_ON`，在老 Adreno 上直接 abort（见 `args.sh` 注释与 `docs/05`）。
+  `DCHECK_ALWAYS_ON`，在老 Adreno 上直接 abort（见 `args.sh` 注释与 `docs/05-build.md`）。
 - 仍崩：`--disable-features=Vulkan` 试一次（补丁 0005 保证被尊重）；
   GPU 信息收集走 ES2 回退（补丁 0006）。
-- 证据：`adb logcat | grep -iE "gpu|angle|vulkan|abort"`，写进 `docs/05-gpu-notes.md`。
+- 证据：`adb logcat | grep -iE "gpu|angle|vulkan|abort"`，写进提交正文；稳定的结论写进 0005/0006 的补丁注释。
 
 ## 5. 签名相关
 

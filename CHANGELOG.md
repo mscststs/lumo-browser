@@ -18,7 +18,7 @@
 - `scripts/chromium/patchwork.sh`：在“没有 commit 的 Chromium 工作树”里写补丁
   （snapshot → 编辑 → export → revert），替代不可用的 `git diff` / `git checkout --`。
 - `.agents/skills/`：`chromium-android-build`、`chromium-patch-set`、`device-verification`。
-- `docs/09-build-iteration.md`：构建成本的实测数据与三层迭代模型。
+- `docs/05-build.md`：构建成本的实测数据与三层迭代模型。
 - `docs/adr/`：路线、补丁集、签名密钥三个决策记录。
 - `tools/verify/check-repo.sh`：仓库卫生检查（脚本语法、补丁编号、文档链接、skills 结构）。
 - 项目元文件：`LICENSE`、`NOTICE`、`CONTRIBUTING.md`、`SECURITY.md`、`Makefile`、
@@ -39,7 +39,7 @@
 - 配置 `b`（`target_os="android"` + `enable_desktop_android_extensions=true`）实测**不可直接编译**：
   `gn gen` 被 `//chrome/browser/new_tab_page/BUILD.gn` 的 `assert(enable_webui_ntp)` 拦住，
   补上后继续撞到 `theme_color_picker` 的 `is_desktop_android` 断言。结论：`a` 是当前唯一可交付配置，
-  `b` 若要做需独立补丁子集（证据：`docs/00` §5）。
+  `b` 若要做需独立补丁子集（证据：`docs/05-build.md` §3）。
 
 ### Fixed
 
@@ -49,7 +49,7 @@
 - `verify.sh`：GATE 不再依赖扩展页的 `Service Worker` 文本（a11y 树里没有），
   改为探针 payload（≥90%）+ 侧栏渲染 + 关闭回归；修掉 `grep -c` 空结果导致的算术错误。
 - `patches/README.md` 的状态表与仓库实际不一致（0002/0003 早已落地）。
-- `docs/00-strategy-and-start.md` §5 中“两个配置复用同一个 out 目录”的错误建议。
+- `docs/05-build.md` 中“两个配置复用同一个 out 目录”的错误建议。
 - `tools/__pycache__/*.pyc` 曾被误入库；已从索引移除并加入 `.gitignore`。
 
 ## [0.1.0] — 2026-11-16

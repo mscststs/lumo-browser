@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the browser APK. Incremental: siso reuses the tree in OUT_DIR, so a
 # patch that touches one Java file costs ~2 min and one C++ file ~25 s
-# (measurements and the iteration model: docs/09-build-iteration.md).
+# (measurements and the iteration model: docs/05-build.md).
 #
 #   scripts/chromium/build.sh [a|b]     config a = is_desktop_android (upstream UI)
 #                                       config b = android + extension core (product target)
@@ -29,7 +29,7 @@ case "$CONFIG" in
 esac
 
 if [[ "$CONFIG" == "b" ]]; then
-  warn "config b 被上游 gn 断言阻塞（docs/00 §5），不要用 build.sh b 排全量；"
+  warn "config b 被上游 gn 断言阻塞（docs/05-build.md §3），不要用 build.sh b 排全量；"
   warn "现在继续只会得到同样的 gn gen 错误（约 30 s 内失败，不会浪费数小时）。"
 fi
 

@@ -85,4 +85,4 @@ tools/cdp.py type <target> "text"
 
 - `references/miui-and-adb.md`：MIUI/SELinux/adb 的坑与对应命令
 - `references/evidence-and-gates.md`：证据目录结构、30 项探针、判定陷阱
-- 仓库内：`docs/03-verification.md`、`docs/06-status.md`、`docs/07-capability-matrix.md`
+- 仓库内：`docs/03-verification.md`、`docs/02-capabilities.md`
