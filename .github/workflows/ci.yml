@@ -65,7 +65,9 @@ jobs:
             head -n1 "$p" | grep -qE '^(--- a/|diff --git )' || { echo "bad header: $p"; exit 1; }
           done
           for p in "${patches[@]}"; do
-            grep -q "$(basename "$p")" patches/README.md || { echo "not in patches/README.md: $p"; exit 1; }
+            n=$(basename "$p" | cut -d- -f1)
+            grep -qE "(^|[^0-9])${n}([^0-9]|$)" patches/README.md \
+              || { echo "not in patches/README.md: $p"; exit 1; }
           done
           echo "ok: ${#patches[@]} patches"
       - name: 补丁可解析（git apply --check 需要源码树，这里只验证 diff 结构）

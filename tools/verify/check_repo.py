@@ -96,6 +96,11 @@ def check_links() -> None:
             if not target:
                 continue
             path = os.path.normpath(os.path.join(os.path.dirname(rel(f)), target))
+            # Sibling checkouts (../lumo, ../lumo-userscript-manager) are not part
+            # of this repository and do not exist in CI; skip anything that
+            # escapes the repo root instead of reporting it as broken.
+            if os.path.commonpath([ROOT, path]) != ROOT:
+                continue
             checked += 1
             if not os.path.exists(path):
                 broken.append(f"{f} -> {target}")
