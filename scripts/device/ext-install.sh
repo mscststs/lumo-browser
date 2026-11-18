@@ -5,7 +5,9 @@
 #
 # Mechanism: extensions live in the app's *external* files dir (readable by the
 # app, writable over adb, no SELinux fight) and are loaded through the Chrome
-# command line file. Requires the `command-line-always` patch in patches/.
+# command line file, which Chromium reads via the `am set-debug-app --persistent`
+# handshake (no root-only path, no shared-storage flag file).
+# The command line itself is owned by scripts/chromium/flags.sh.
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 need_device
@@ -35,13 +37,12 @@ D push "$LUMO_OUT" "$EXT_ROOT/lumo" >/dev/null
 D push "$US_OUT" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
 
 step "register via chrome command line"
-# NOTE: Chrome reads a single value per switch; repeated flags overwrite each other, so
-# extensions MUST be comma-separated in one --load-extension. Flags live in /data/local/tmp and
-# are picked up through Chrome's debug-app handshake (no shared-storage flag file).
-CMDLINE="chrome --load-extension=$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager --no-first-run --disable-fre --no-default-browser-check"
-# Write as the shell user: /data/local/tmp is shell-writable, and going through `su -c`
-# mangles the embedded newline/quoting (flags ended up concatenated with "n").
-D shell "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
-DR "am set-debug-app --persistent $PRODUCT_PKG" || true
+# One command line for all scripts: flags.sh joins the extensions into a single
+# comma-separated --load-extension (repeated switches overwrite each other), adds
+# feature flags from the environment, and installs the debug-app handshake.
+LUMO_EXT_ROOT="$EXT_ROOT" \
+LUMO_EXTENSIONS="lumo,lumo-userscript-manager" \
+LUMO_FLAGS="--no-first-run --disable-fre --no-default-browser-check" \
+  "$REPO_ROOT/scripts/chromium/flags.sh" push | tail -3
 DR "am force-stop $PRODUCT_PKG"
 log "extensions staged; relaunch the app (scripts/device/launch.sh)"

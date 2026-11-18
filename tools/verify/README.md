@@ -8,9 +8,10 @@
 tools/
 ├── probe-extension/        零依赖静态扩展（adb push 即可，无需构建）
 └── verify/
-    ├── manifest.json       21 条验收项，weight 合计 100，每条写明证据口径
+    ├── manifest.json       验收项清单（weight 合计 100，阈值 90），每条写明证据口径
     ├── check-static.sh     纯静态检查（node --check / json / CSP / 外链 / weight / SW 冒烟）
     ├── sw-harness.js       Node + 假 chrome.* 表面跑一遍 sw.js（非浏览器测试）
+    ├── check-repo.sh       仓库卫生（脚本语法/补丁编号/文档链接/skills，CI 使用）
     └── README.md           本文件
 ```
 

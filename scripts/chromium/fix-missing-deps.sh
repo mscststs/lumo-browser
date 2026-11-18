@@ -8,7 +8,7 @@ source "$(dirname "$0")/../lib/common.sh"
 [[ -d "$CHROMIUM_SRC" ]] || die "missing $CHROMIUM_SRC"
 
 CONFIG="${1:-a}"
-OUT_DIR="${OUT_DIR:-out/lumo-$CONFIG}"
+[[ -n "${OUT_DIR:-}" ]] || OUT_DIR="$(resolve_out_dir "$CONFIG" "${FAST:-1}")"
 MAX=40
 
 for i in $(seq 1 "$MAX"); do

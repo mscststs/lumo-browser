@@ -1,6 +1,31 @@
+# 构建产物与本地状态（全部可再生，绝不入库）
 artifacts/
+out/
 *.apk
 *.aab
+*.tar.xz
+*.tar.zst
 *.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# 编辑器 / 系统
 .DS_Store
-node_modules/
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# 本地环境覆盖（不要把本机路径、代理写进仓库）
+.env
+.env.local
+config.local.sh
+
+# Chromium 源码树内的辅助目录（若把 CHROMIUM_SRC 指到仓库内）
+.lumo-patches/
+.lumo-patchwork/

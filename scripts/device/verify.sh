@@ -35,15 +35,13 @@ D push "$REPO_ROOT/tools/probe-extension" "$PROBE_DIR" >/dev/null
 D push "$EXT_LUMO_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo" >/dev/null
 D push "$EXT_US_DIR/.output/chrome-mv3" "$EXT_ROOT/lumo-userscript-manager" >/dev/null
 # Extensions are loaded through the upstream rooted flow: `/data/local/tmp` command line +
-# `am set-debug-app` (Chrome's documented non-rooted/debug-app handshake). We deliberately do
-# NOT read flags from shared storage — any app with all-files access could otherwise inject
-# `--load-extension` / `--remote-debugging-port`.
-CMDLINE="chrome --load-extension=$PROBE_DIR,$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager --no-first-run --disable-fre --no-default-browser-check --remote-debugging-port=9222"
-# Write as the shell user: /data/local/tmp is shell-writable, and going through `su -c`
-# mangles the embedded newline/quoting (flags ended up concatenated with "n").
-D shell "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
-D shell "rm -f /sdcard/Android/data/$PRODUCT_PKG/files/chrome-command-line" 2>/dev/null || true
-DR "am set-debug-app --persistent $PRODUCT_PKG" || true
+# `am set-debug-app` (Chrome's documented non-rooted/debug-app handshake). flags.sh owns that
+# file and always clears the shared-storage variant, which any app with all-files access could
+# otherwise use to inject `--load-extension` / `--remote-debugging-port`.
+LUMO_EXT_ROOT="$EXT_ROOT" \
+LUMO_EXTENSIONS="probe-$PROBE_HASH,lumo,lumo-userscript-manager" \
+LUMO_FLAGS="--no-first-run --disable-fre --no-default-browser-check --remote-debugging-port=9222" \
+  "$REPO_ROOT/scripts/chromium/flags.sh" push | tail -3
 
 # 3) launch with a clean log
 step "launch"
@@ -127,7 +125,7 @@ fi
 step "collect logcat"
 D logcat -d > "$OUT/logcat.txt" 2>/dev/null || true
 D forward tcp:9222 localabstract:chrome_devtools_remote >/dev/null 2>&1 || true
-if python3 "$REPO_ROOT/tools/probe-dump.py" --run --out "$OUT/probe.json" 2>/dev/null; then
+if python3 "$REPO_ROOT/tools/probe-dump.py" --run --out "$OUT/probe.json" 2>"$OUT/probe-dump.log"; then
   python3 - "$OUT" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1] + '/probe.json'))
@@ -193,19 +191,33 @@ fi
 
 step "gate"
 GATE_FAIL=0
+# Probe payload is authoritative for API capability (chrome.storage read from the
+# SW), not page text: the extensions page does not expose SW labels in its a11y
+# tree, and MV3 workers idle out between steps.
 if [[ -f "$OUT/probe.json" ]]; then
-  PASS="$(python3 -c "import json;print(json.load(open('$OUT/probe.json'))['meta']['pass'])" 2>/dev/null || echo 0)"
-  TOTAL="$(python3 -c "import json;print(json.load(open('$OUT/probe.json'))['meta']['total'])" 2>/dev/null || echo 0)"
-  log "probe: $PASS/$TOTAL"
-  (( PASS * 100 >= TOTAL * 80 )) || { warn "probe pass rate < 80%"; GATE_FAIL=1; }
+  read -r PASS TOTAL FAILS <<<"$(python3 - "$OUT/probe.json" <<'PROBE'
+import json, sys
+d = json.load(open(sys.argv[1]))
+m = d["meta"]
+failing = [r.get("api", "?") for r in d.get("results", []) if not r.get("ok")]
+print(m.get("pass", 0), m.get("total", 0), ",".join(failing) or "-")
+PROBE
+)"
+  PASS="${PASS:-0}"; TOTAL="${TOTAL:-0}"
+  log "probe: $PASS/$TOTAL (fail: ${FAILS:-none})"
+  (( TOTAL > 0 )) || { warn "probe.json has no total"; GATE_FAIL=1; }
+  (( TOTAL == 0 || PASS * 100 >= TOTAL * 90 )) || { warn "probe pass rate < 90%"; GATE_FAIL=1; }
 else
   warn "missing probe.json"; GATE_FAIL=1
 fi
 for name in Lumo "Lumo MV3 Probe" "Lumo 用户脚本管理器"; do
   grep -q "$name" "$OUT/extensions-strings.txt" 2>/dev/null || { warn "extension not listed: $name"; GATE_FAIL=1; }
 done
-[[ "$(grep -c 'Service Worker' "$OUT/extensions-strings.txt" 2>/dev/null || echo 0)" -ge 3 ]] \
-  || { warn "expected >=3 running service workers"; GATE_FAIL=1; }
+# The side panel surface must actually render content (bottom sheet or side-by-side).
+[[ -s "$OUT/sidepanel-strings.txt" ]] \
+  || { warn "side panel surface has no text (not rendered?)"; GATE_FAIL=1; }
+SW_COUNT="$(grep -c service_worker "$OUT/cdp-targets.txt" 2>/dev/null || true)"
+log "service workers visible via CDP: ${SW_COUNT:-0} (informational; MV3 workers idle out)"
 grep -q 'close_panel=ok' "$OUT/close-panel.txt" 2>/dev/null \
   || { warn "closing the side panel did not survive"; GATE_FAIL=1; }
 if (( GATE_FAIL )); then

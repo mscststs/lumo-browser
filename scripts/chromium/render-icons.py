@@ -144,14 +144,31 @@ def png_size(path: str) -> tuple[int, int]:
     return struct.unpack(">II", head[16:24])
 
 
-def resize_png(src: str, dst: str, size: int) -> None:
+def replace_if_changed(tmp: str, dst: str) -> bool:
+    """Move tmp over dst only when the bytes differ.
+
+    Rewriting identical PNGs still bumps mtime, which makes the Android
+    resource pipeline look dirty on every build (and makes "did the icon really
+    change?" unanswerable). Compare instead.
+    """
+    if os.path.isfile(dst):
+        with open(tmp, "rb") as a, open(dst, "rb") as b:
+            if a.read() == b.read():
+                os.unlink(tmp)
+                return False
+    shutil.move(tmp, dst)
+    return True
+
+
+def resize_png(src: str, dst: str, size: int) -> bool:
+    tmp = dst + ".tmp"
     magick = shutil.which("magick") or shutil.which("convert")
     if magick:
         subprocess.run(
-            [magick, src, "-filter", "Lanczos", "-resize", "%dx%d" % (size, size), "-strip", dst],
+            [magick, src, "-filter", "Lanczos", "-resize", "%dx%d" % (size, size), "-strip", tmp],
             check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
-        return
+        return replace_if_changed(tmp, dst)
     img = cairo.ImageSurface.create_from_png(src)
     out = new_surface(size)
     cr = cairo.Context(out)
@@ -159,7 +176,8 @@ def resize_png(src: str, dst: str, size: int) -> None:
     cr.set_source_surface(img, 0, 0)
     cr.get_source().set_filter(cairo.FILTER_BEST)
     cr.paint()
-    out.write_to_png(dst)
+    out.write_to_png(tmp)
+    return replace_if_changed(tmp, dst)
 
 
 def alpha_at(surface: cairo.ImageSurface, x: int, y: int) -> int:
@@ -328,16 +346,21 @@ def main() -> int:
                 (bg_png, os.path.join(mipmap, "layered_app_icon_background.png"),
                  int(round(legacy_px * LEGACY_SCALE * 1.5)), verify_background),
             ]
+            changed = False
             for src, dst, px, check in jobs:
-                resize_png(src, dst, px)
+                changed = resize_png(src, dst, px) or changed
                 check(dst, px)
+            if changed:
+                print("[icons] updated mipmap-%s" % name)
 
         if args.res:
             drawable = os.path.join(args.res, "drawable")
             os.makedirs(drawable, exist_ok=True)
             mono_dst = os.path.join(drawable, "themed_app_icon.xml")
-            shutil.copyfile(MONO_XML, mono_dst)
-            print("[icons] themed_app_icon.xml -> %s" % mono_dst)
+            mono_tmp = mono_dst + ".tmp"
+            shutil.copyfile(MONO_XML, mono_tmp)
+            if replace_if_changed(mono_tmp, mono_dst):
+                print("[icons] themed_app_icon.xml updated")
 
         if args.preview:
             print("[icons] preview -> %s" % write_preview(crop, args.preview))

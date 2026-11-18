@@ -16,6 +16,12 @@ export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/android-sdk}"
 export PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
 export DEVICE_SERIAL="${DEVICE_SERIAL:-$(adb devices | awk 'NR>1 && $2=="device"{print $1; exit}')}"
 
+# --- Signing (dev key, tracked in git on purpose: keys/README.md) ----------
+# shellcheck source=scripts/lib/signing.env
+source "$(dirname "${BASH_SOURCE[0]}")/signing.env"
+export LUMO_KEY_FILE="${LUMO_KEY_FILE:-$REPO_ROOT/keys/lumo-dev.jks}"
+export LUMO_KEY_STAGED="$CHROMIUM_SRC/lumo-signing/lumo-dev.jks"
+
 # --- Product ---------------------------------------------------------------
 export APK_OUT="${APK_OUT:-$REPO_ROOT/artifacts/apk}"
 # Adopt package/activity from the last built APK when available.
@@ -28,6 +34,25 @@ export PRODUCT_PKG="${PRODUCT_PKG:-dev.lumo.browser}"
 # Reference extensions (siblings of this repo).
 export EXT_LUMO_DIR="${EXT_LUMO_DIR:-$REPO_ROOT/../lumo}"
 export EXT_US_DIR="${EXT_US_DIR:-$REPO_ROOT/../lumo-userscript-manager}"
+
+# --- Build trees -----------------------------------------------------------
+# One out dir per flavor: FAST toggles is_official_build, which invalidates
+# nearly every object. Historical trees keep working:
+#   FAST=1 -> out/lumo-<config>
+#   FAST=0 -> out/lumo-<config>-rel, or out/lumo-rel for config a if that is
+#             what an older checkout already has (avoids a multi-hour rebuild).
+resolve_out_dir() { # resolve_out_dir <config> <fast 0|1>
+  local config="${1:-a}" fast="${2:-1}" dir
+  if [[ "$fast" == "1" ]]; then
+    dir="out/lumo-$config"
+  else
+    dir="out/lumo-$config-rel"
+    if [[ "$config" == "a" && ! -d "$CHROMIUM_SRC/$dir" && -d "$CHROMIUM_SRC/out/lumo-rel" ]]; then
+      dir="out/lumo-rel"
+    fi
+  fi
+  printf '%s' "$dir"
+}
 
 # --- Output ----------------------------------------------------------------
 if [[ -t 1 ]]; then

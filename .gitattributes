@@ -1,0 +1,33 @@
+# 行尾与二进制标记。仓库统一 LF（Windows 检出也不要变 CRLF）。
+* text=auto eol=lf
+
+# 补丁必须逐字节一致，禁止任何自动转换
+*.patch text eol=lf -diff
+*.diff  text eol=lf -diff
+
+# shell / python / 文档
+*.sh    text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.xml   text eol=lf
+*.svg   text eol=lf
+Makefile text eol=lf
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+# 二进制（签名密钥、图标、APK）
+*.jks      binary
+*.keystore binary
+*.png      binary
+*.jpg      binary
+*.apk      binary
+*.aab      binary
+
+# 语言统计：补丁与文档不计入代码行数
+patches/* linguist-documentation
+docs/*    linguist-documentation
+*.md      linguist-documentation

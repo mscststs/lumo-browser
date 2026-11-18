@@ -1,0 +1,42 @@
+# NOTICE
+
+Lumo Browser is an independently maintained set of patches, scripts and tooling
+that is applied to an unmodified upstream **Chromium** source tree. Chromium
+itself is **not** vendored in this repository.
+
+## Chromium
+
+- Project: https://www.chromium.org/
+- Source: https://chromium.googlesource.com/chromium/src
+- License: BSD-3-Clause (`chromium/src/LICENSE`)
+
+Every file under `patches/` is a diff **against Chromium source files**. As a
+derivative work, the patched hunks remain under Chromium's BSD-3-Clause license
+and carry Chromium's copyright notices; the diff metadata and the surrounding
+explanation are MIT (see `LICENSE`). When applying a patch, the resulting file
+keeps Chromium's header and license.
+
+## This repository
+
+- Scripts (`scripts/`), tooling (`tools/`), documentation (`docs/`), agent
+  skills (`.agents/`) and build metadata: MIT, `Copyright (c) 2026 Lumo Browser
+  contributors`.
+- `keys/lumo-dev.jks`: generated for this project, committed on purpose, and
+  explicitly scoped to debug builds (see `keys/README.md`). It is not a secret
+  and grants no authenticity.
+
+## Reference projects (read, not copied)
+
+- **Titanium** (GPL-2.0): used only as a *problem list* / behavioural baseline.
+  No GPL code is copied into this repository. See `docs/02-baseline-titanium.md`.
+- **lumo** and **lumo-userscript-manager** are separate sibling repositories
+  used as first-class test extensions; they are not part of this repository and
+  are not redistributed here.
+
+## Third-party assets
+
+- Launch icon artwork (`scripts/chromium/branding/*.svg`) is original work.
+- Probe extension icons (`tools/probe-extension/icons/*.png`) are generated from
+  the same artwork.
+- `tools/mock-openai.py` implements the OpenAI-compatible wire format for local
+  testing only; it is not affiliated with OpenAI.

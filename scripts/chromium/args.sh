@@ -8,6 +8,8 @@
 set -euo pipefail
 CONFIG="${1:-a}"
 FAST="${FAST:-1}"
+# shellcheck source=scripts/lib/signing.env
+source "$(dirname "$0")/../lib/signing.env"
 
 case "$CONFIG" in
   a) DESKTOP_ANDROID=true;  EXT_CORE=false ;;
@@ -54,6 +56,16 @@ include_both_v8_snapshots = false
 # Product identity (Lumo Browser).
 chrome_public_manifest_package = "dev.lumo.browser"
 EOF
+
+# Signing: the repo-tracked dev key (keys/README.md). keys.sh stages a copy
+# inside the checkout because GN cannot reference paths outside the source root.
+# These args only affect the apk packaging steps, so changing them re-signs but
+# never recompiles.
+cat <<KEYEOF
+android_keystore_path = "$LUMO_KEY_GN_DIR/lumo-dev.jks"
+android_keystore_name = "$LUMO_KEY_ALIAS"
+android_keystore_password = "$LUMO_KEY_PASSWORD"
+KEYEOF
 
 if [[ "$EXT_CORE" == "true" ]]; then
   # config b: keep the mobile (non-desktop-android) build but compile the

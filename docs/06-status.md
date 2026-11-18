@@ -17,6 +17,11 @@
 | 关闭侧栏不崩溃 | ✅ 连续开关 + 自动回归 | `close-panel.txt` = `close_panel=ok` |
 | 验收硬门槛 | ✅ `GATE=OK` | `summary.txt` |
 
+**最近一次复跑（2026-11-17，仓库重构后）**：`artifacts/verify/20261117-1550*/summary.txt`
+→ 探针 30/30、CDP 可见 3 个 service worker、`close_panel=ok`、`GATE=OK`。
+这一轮同时修好了两个验收工具问题：MV3 worker 休眠导致探针导出失败（`probe-dump.py` 现在会
+用 `probe.html` 唤醒并恢复原标签页），以及探针重复运行时的 `userScripts.register` 幂等性。
+
 ## 构建流水线
 
 ```
@@ -25,8 +30,11 @@ scripts/chromium/cipd-deps.sh    NDK/SDK/JDK/androidx/build-tools（表由 DEPS 
 scripts/chromium/fetch-dep.sh    googlesource +archive 补齐缺失的 git 依赖
 scripts/chromium/fetch-tree.sh   仓库子目录（+archive/<tag>/<path>.tar.gz）
 scripts/chromium/toolchain.sh    clang + LASTCHANGE + gclient_args.gni
-scripts/chromium/build.sh a      补丁 → 品牌化 → gn → siso → artifacts/apk/
+scripts/chromium/build.sh a      补丁 → 签名 → 品牌化 → gn → siso → artifacts/apk/
 ```
+
+增量成本与迭代模型见 `docs/09-build-iteration.md`；APK 由仓库内 dev key 签名
+（`keys/README.md`，仅 debug，可 `pm install -r` 覆盖升级）。
 
 ## 补丁（8 个）
 

@@ -5,26 +5,72 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   static:
+    name: 静态检查（语法 / 探针）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Shell syntax
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Shell 语法
         run: |
-          for f in $(git ls-files 'scripts/**/*.sh'); do bash -n "$f"; done
-      - name: Python syntax
+          for f in $(git ls-files '*.sh'); do bash -n "$f"; done
+      - name: Python 编译
         run: |
-          python3 -m py_compile tools/*.py tools/verify/*.js 2>/dev/null || true
-          python3 -m py_compile tools/cdp.py tools/probe-dump.py tools/deps_resolve.py tools/gen_cipd_table.py
-          python3 -m py_compile tools/mock-openai.py
-      - name: Probe extension static checks (node --check, manifest, CSP, SW smoke)
+          export PYTHONPYCACHEPREFIX="$(mktemp -d)"
+          for f in $(git ls-files '*.py'); do python3 -m py_compile "$f"; done
+      - name: 探针扩展静态检查（node --check / manifest / CSP / SW 冒烟）
         run: bash tools/verify/check-static.sh
-      - name: Patch hygiene (headers + reverse-apply against pristine files is device-only)
+
+  hygiene:
+    name: 仓库卫生（补丁 / 链接 / skills）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: check-repo
+        run: bash tools/verify/check-repo.sh
+
+  patches:
+    name: 补丁格式（编号 / 头 / README 覆盖）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 补丁编号与头部
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          patches=(patches/[0-9][0-9][0-9][0-9]-*.patch)
+          ((${#patches[@]})) || { echo "no patches found"; exit 1; }
+          prev=0
+          for p in "${patches[@]}"; do
+            n=$(basename "$p" | cut -d- -f1)
+            n=$((10#$n))
+            [ "$n" -gt "$prev" ] || { echo "patch numbering not increasing: $p"; exit 1; }
+            prev=$n
+            head -n1 "$p" | grep -qE '^(--- a/|diff --git )' || { echo "bad header: $p"; exit 1; }
+          done
+          for p in "${patches[@]}"; do
+            grep -q "$(basename "$p")" patches/README.md || { echo "not in patches/README.md: $p"; exit 1; }
+          done
+          echo "ok: ${#patches[@]} patches"
+      - name: 补丁可解析（git apply --check 需要源码树，这里只验证 diff 结构）
         run: |
           for p in patches/*.patch; do
-            head -n1 "$p" | grep -qE '^(---|diff --git)' || { echo "bad patch header: $p"; exit 1; }
+            git apply --numstat "$p" >/dev/null || { echo "unparsable patch: $p"; exit 1; }
           done
+          echo "ok: all patches parse"

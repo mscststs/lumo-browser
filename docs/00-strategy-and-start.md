@@ -127,11 +127,19 @@
 | **A. 上游支持形态** | `is_desktop_android = true` | 扩展栈完整（含 windowing、tablet 工具栏），最接近「上游 CI 会测」的路径 | 可能带桌面化 UI（窗口/多实例），手机形态需收敛 |
 | **B. 手机形态 + 扩展** | `target_os="android"` + `enable_desktop_android_extensions = true` | 保留手机原生 UI（我们熟悉的 Chrome Android 形态），同时编译扩展核心与 internal UI | 部分代码路径依赖 `is_desktop_android` 的其他假设（如 windowing、devtools），可能编译失败或运行期崩溃 |
 
-**实验顺序**：先 A（成功率最高，能立刻拿到可用基线），再 B（若 A 的桌面化 UI 不可接受，B 是我们真正的目标形态）。两次构建复用同一个 `out/` 目录可省一半磁盘。
+**实验顺序**：先 A（成功率最高，能立刻拿到可用基线），再 B（若 A 的桌面化 UI 不可接受，B 是我们真正的目标形态）。
+
+每个配置**独占一个 out 目录**（`out/lumo-a`、`out/lumo-b`；official 用 `-rel` 后缀）。
+不要为了省磁盘让两个配置共用一个 `out/`：`is_desktop_android`/`enable_desktop_android_extensions`
+都参与编译参数，一旦变化，ninja 会认为几乎所有目标失效——那不是“省一半”，而是两次全量。
+详见 `docs/09-build-iteration.md` §2/§7。
 
 判定标准（二选一即可）：
 - A 能在手机上以可接受形态跑起 `lumo` 扩展的 sidePanel；
 - 或 B 能编译通过且扩展菜单可用。
+
+**截至 2026-11-17 的实际状态**：A 已构建并真机验收（30/30、侧栏、扩展全部通过）；
+B 尚未构建（`out/lumo-b` 不存在），需要一次全量构建 + 同样强度的验收才能算数。
 
 ---
 

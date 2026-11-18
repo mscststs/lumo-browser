@@ -1,0 +1,31 @@
+# 编辑器统一配置。CI 与本地都按这里的约定检查。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_size = 4
+
+[Makefile]
+indent_style = tab
+
+[*.{patch,diff}]
+# 补丁必须逐字保留上下文，编辑器不要帮忙
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{png,jpg,jks,keystore,apk}]
+# 二进制：不要让编辑器做任何转换
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset

@@ -15,12 +15,10 @@ FLAGS="${*:-}"
 
 step "launch"
 if [[ -n "$FLAGS" ]]; then
-  EXT_ROOT="/sdcard/Android/data/$PRODUCT_PKG/files/ext"
-  CMDLINE="chrome --load-extension=$EXT_ROOT/lumo,$EXT_ROOT/lumo-userscript-manager $FLAGS"
-  # Write as the shell user: /data/local/tmp is shell-writable, and going through `su -c`
-# mangles the embedded newline/quoting (flags ended up concatenated with "n").
-D shell "printf '%s\n' '$CMDLINE' > /data/local/tmp/chrome-command-line; chmod 644 /data/local/tmp/chrome-command-line"
-  DR "am set-debug-app --persistent $PRODUCT_PKG" || true
+  # Extra flags are re-pushed through the single composer so the command line
+  # stays one string (see scripts/chromium/flags.sh).
+  # shellcheck disable=SC2086
+  "$REPO_ROOT/scripts/chromium/flags.sh" push $FLAGS | tail -2
 fi
 launch_browser
 wait_focus 60 || warn "browser not foreground"

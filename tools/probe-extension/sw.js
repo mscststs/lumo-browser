@@ -390,6 +390,13 @@ async function probeUserScriptsRegister() {
     throw new Error('chrome.userScripts.register missing');
   }
   const id = 'lumo-probe-userscript';
+  // Re-runs in the same SW must be deterministic: `register()` rejects when the
+  // stored scripts would not change, so clear the probe's script first.
+  try {
+    await chrome.userScripts.unregister({ ids: [id] });
+  } catch (e) {
+    /* nothing registered from a previous run */
+  }
   try {
     await chrome.userScripts.register([
       {
