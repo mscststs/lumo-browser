@@ -28,6 +28,11 @@ case "$CONFIG" in
   *) die "unknown config '$CONFIG' (use a|b)" ;;
 esac
 
+if [[ "$CONFIG" == "b" ]]; then
+  warn "config b 被上游 gn 断言阻塞（docs/00 §5），不要用 build.sh b 排全量；"
+  warn "现在继续只会得到同样的 gn gen 错误（约 30 s 内失败，不会浪费数小时）。"
+fi
+
 # --- build tree -------------------------------------------------------------
 # Flavor -> out dir mapping lives in common.sh (shared with cache.sh and
 # fix-missing-deps.sh); explicit OUT_DIR always wins.

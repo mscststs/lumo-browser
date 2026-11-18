@@ -79,7 +79,7 @@ make help                                 # 以上命令的 Makefile 入口
 | 配置 | args.gn 关键项 | 用途 | out 目录 |
 |---|---|---|---|
 | `a` | `is_desktop_android = true` | 上游支持形态，当前验收基线 | `out/lumo-a`（FAST）/ `out/lumo-rel`（official） |
-| `b` | `target_os="android"` + `enable_desktop_android_extensions=true` | 手机原生 UI + 扩展核心，产品目标 | `out/lumo-b` / `out/lumo-b-rel`（未构建） |
+| `b` | `target_os="android"` + `enable_desktop_android_extensions=true` | 手机原生 UI + 扩展核心，**实测被上游 gn 断言阻塞**（`docs/00` §5） | `out/lumo-b`（不存在；不要用 `build.sh b` 试） |
 
 - `build.sh` 默认 `a`；`FAST=1`（默认）产非 official 包用于迭代，`FAST=0` 产 official 包用于验收。
 - 切换配置或 `FAST` = 一次全量构建（数小时、+10–20 GB）。先定配置，再开始改代码。

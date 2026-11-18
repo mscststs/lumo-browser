@@ -40,7 +40,7 @@ Android 上的 **Chromium 自构建浏览器**，把「完整运行 MV3 扩展�
 | 配置 | args.gn 关键项 | 状态 |
 |---|---|---|
 | `a`（当前构建、已验收） | `is_desktop_android = true` | ✅ 真机 30/30、侧栏、扩展全部通过 |
-| `b`（产品目标：手机原生 UI + 扩展核心） | `target_os="android"` + `enable_desktop_android_extensions=true` | ⏳ **尚未构建**，需要一次全量（数小时，+10–20 GB） |
+| `b`（手机原生 UI + 扩展核心） | `target_os="android"` + `enable_desktop_android_extensions=true` | ⛔ **实测不可直接编译**：`gn gen` 被上游断言拦住（`assert(enable_webui_ntp)` → WebUI 资源要求 `is_desktop_android`），需要专属补丁子集；详见 [`docs/00` §5](docs/00-strategy-and-start.md) |
 
 ## 快速开始
 

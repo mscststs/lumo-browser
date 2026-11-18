@@ -34,6 +34,13 @@
 - `AGENTS.md`、`README.md`、`docs/README.md`、`patches/README.md` 全面重写/校正。
 - CI：增加 `check-repo.sh`（脚本语法、补丁编号与格式、文档链接、skills 结构）。
 
+### Research
+
+- 配置 `b`（`target_os="android"` + `enable_desktop_android_extensions=true`）实测**不可直接编译**：
+  `gn gen` 被 `//chrome/browser/new_tab_page/BUILD.gn` 的 `assert(enable_webui_ntp)` 拦住，
+  补上后继续撞到 `theme_color_picker` 的 `is_desktop_android` 断言。结论：`a` 是当前唯一可交付配置，
+  `b` 若要做需独立补丁子集（证据：`docs/00` §5）。
+
 ### Fixed
 
 - `tools/probe-dump.py`：MV3 worker 空闲退出后导不出探针结果（现在会用 `probe.html` 唤醒、

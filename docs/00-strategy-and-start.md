@@ -139,7 +139,32 @@
 - 或 B 能编译通过且扩展菜单可用。
 
 **截至 2026-11-17 的实际状态**：A 已构建并真机验收（30/30、侧栏、扩展全部通过）；
-B 尚未构建（`out/lumo-b` 不存在），需要一次全量构建 + 同样强度的验收才能算数。
+B 未构建，且 **2026-11-18 的实测证明它不是“翻一个参数”的实验**。
+
+### B 的实测结论（2026-11-18，`FAST=0 build.sh b`）
+
+`gn gen` 直接失败，且是**上游断言**拦住的，不是我们的环境问题：
+
+```
+# 1) 启用扩展核心后，extensions/BUILD.gn:2568 拉入 new_tab_page
+ERROR at //chrome/browser/new_tab_page/BUILD.gn:7:1: Assertion failed.
+assert(enable_webui_ntp)
+See //chrome/browser/extensions/BUILD.gn:2568:5
+
+# 2) 补上 enable_webui_ntp = true 后，又撞到 WebUI 资源只在 desktop_android 可用
+ERROR at //ui/webui/resources/cr_components/theme_color_picker/BUILD.gn:9:1: Assertion failed.
+assert((!is_android && !is_ios) || is_desktop_android)
+See //chrome/browser/BUILD.gn:1465:7
+```
+
+依赖链还在继续（主题色选择器 → 后续 WebUI 组件）。结论：
+
+- `target_os="android"` + `enable_desktop_android_extensions=true`（`is_desktop_android=false`）
+  会滑进一批“只在 desktop_android 下成立”的 WebUI/资源假设，需要**补丁**才能编译，
+  不是 build flag 组合能解决的；
+- 因此 **A（`is_desktop_android=true`）是当前唯一可交付配置**，手机形态由 0002/0009/0010/0011 收敛；
+- 若将来要做 B，它应当作为一个**独立项目**（专属补丁子集 + 独立验收），而不是 `build.sh b` 的开关。
+  证据：`artifacts/logs/build-b-20261118-1132.log`（gitignored，含完整 gn 报错）。
 
 ---
 

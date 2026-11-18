@@ -156,7 +156,10 @@ scripts/chromium/cache.sh list
 
 ## 8. 当前已知缺口
 
-- **配置 b 从未构建**：`out/` 里只有 `lumo-a`、`lumo-rel`（都是 `is_desktop_android=true`），
-  `out/lumo-b` 不存在。切换配置 = 一次全量构建（+10G 磁盘）。要么正式构建一次并归档，
-  要么在 `AGENTS.md`/`docs` 里明确放弃 b，不要留“文档说 b、脚本默认 a”的分歧。
+- **配置 b 实测不可直接编译**（2026-11-18）：`FAST=0 build.sh b` 在 `gn gen` 阶段被上游断言拦住
+  （`assert(enable_webui_ntp)` → `theme_color_picker` 要求 `is_desktop_android`，见
+  `docs/00` §5）。这不是 build flag 能组合出来的形态，需要专属补丁子集。
+  结论：`a` 是唯一可交付配置；`b` 若要做，按独立项目排期，不要用 `build.sh b` 试探。
+- 因此“切换配置 = 一次全量构建”的代价目前**不会发生**：只维护 `out/lumo-a`（FAST）与
+  `out/lumo-rel`（official）。
 - `nativeMessaging` / `desktopCapture` / `devtools.*` 是平台限制，补丁解决不了（见 `07-capability-matrix.md`）。
